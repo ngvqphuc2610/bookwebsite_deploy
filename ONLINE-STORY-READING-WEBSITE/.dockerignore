@@ -1,0 +1,9 @@
+target
+.mvn
+uploads
+app_boot.log
+.env
+.env.*
+Dockerfile*
+README.md
+node_modules

@@ -1,0 +1,65 @@
+name: Deploy to Production
+
+on:
+  workflow_dispatch:  # Manual trigger from GitHub UI
+  push:
+    branches: [main]
+    paths-ignore:
+      - '*.md'
+      - '.gitignore'
+
+jobs:
+  # First run CI checks
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    name: Deploy to GCP VPS
+    needs: ci
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -e
+            cd /opt/bookwebsite
+
+            echo "📥 Pulling latest code..."
+            git pull origin main
+
+            echo "🔨 Building and restarting containers..."
+            docker compose -f docker-compose.prod.yml up -d --build --remove-orphans
+
+            echo "⏳ Waiting for services to start..."
+            sleep 15
+
+            echo "🏥 Health check..."
+            # Check if containers are running
+            docker compose -f docker-compose.prod.yml ps
+
+            # Check if backend is responding
+            for i in {1..10}; do
+              if curl -sf http://localhost/api/stories > /dev/null 2>&1; then
+                echo "✅ Backend is healthy!"
+                break
+              fi
+              echo "Waiting for backend... ($i/10)"
+              sleep 5
+            done
+
+            # Check if frontend is responding
+            if curl -sf http://localhost > /dev/null 2>&1; then
+              echo "✅ Frontend is healthy!"
+            else
+              echo "⚠️ Frontend health check failed"
+            fi
+
+            echo "🧹 Cleaning up old Docker images..."
+            docker image prune -f
+
+            echo "✅ Deploy completed at $(date)"

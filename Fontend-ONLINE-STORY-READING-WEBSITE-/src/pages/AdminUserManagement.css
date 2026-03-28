@@ -1,0 +1,240 @@
+/* admin-light.css */
+/* Styles specifically for the light-themed user management */
+
+.light-theme {
+    background: #f8fafc;
+    /* Very light cool gray */
+    color: #1e293b;
+    font-family: 'Inter', sans-serif;
+}
+
+.light-sidebar {
+    background: #ffffff;
+    border-right: 1px solid #e2e8f0;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.02);
+}
+
+.light-sidebar .admin-logo h2 {
+    color: #0f172a;
+}
+
+.light-sidebar .admin-nav a {
+    color: #64748b;
+    transition: all 0.2s;
+}
+
+.light-sidebar .admin-nav a:hover,
+.light-sidebar .admin-nav a.active {
+    background: #f1f5f9;
+    color: #4f46e5;
+    border-right-color: #4f46e5;
+}
+
+.light-main .light-header {
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+}
+
+.light-search input {
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    color: #1e293b;
+}
+
+.light-search input:focus {
+    background: #ffffff;
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.light-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+    border-radius: 16px;
+}
+
+.light-table th {
+    background: #f8fafc;
+    color: #475569;
+    border-bottom: 2px solid #e2e8f0;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+}
+
+.light-table td {
+    color: #334155;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.light-table tr:hover {
+    background: #f8fafc;
+}
+
+.table-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #e2e8f0;
+}
+
+/* Modal styling */
+.light-card .modal-header h3 {
+    color: #0f172a;
+}
+
+.light-card .modal-close {
+    color: #64748b;
+}
+
+.light-card .modal-close:hover {
+    color: #ef4444;
+    background: #fef2f2;
+}
+
+.role-selection {
+    margin: 1rem 0;
+}
+
+.role-options {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 0.5rem;
+}
+
+.light-checkbox {
+    color: #334155;
+    font-weight: 500;
+}
+
+.light-checkbox .checkmark {
+    border: 2px solid #cbd5e1;
+}
+
+.light-cancel {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.light-cancel:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+}
+
+/* Badges for roles */
+.role-badges {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.role-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 99px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.role-badge.admin {
+    background: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+}
+
+.role-badge.user {
+    background: #eff6ff;
+    color: #2563eb;
+    border: 1px solid #bfdbfe;
+}
+
+.role-badge.staff {
+    background: #fdf2f8;
+    color: #db2777;
+    border: 1px solid #fbcfe8;
+}
+
+.status-badge.active {
+    background: #ecfdf5;
+    color: #059669;
+    border: 1px solid #d1fae5;
+}
+
+.status-badge.locked {
+    background: #fff1f2;
+    color: #e11d48;
+    border: 1px solid #ffe4e6;
+}
+
+.user-locked {
+    opacity: 0.7;
+    background-color: #fef2f2 !important;
+}
+
+.btn-lock {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #64748b;
+}
+
+.btn-lock:hover {
+    background: #f1f5f9;
+    color: #ef4444;
+}
+
+.btn-lock.is-locked {
+    color: #ef4444;
+    background: #fff1f2;
+}
+
+.light-btn {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+.light-btn:hover.btn-edit {
+    background: #eff6ff;
+    border-color: #bfdbfe;
+}
+
+.light-btn:hover.btn-delete {
+    background: #fef2f2;
+    border-color: #fecaca;
+}
+
+.light-input-box input,
+.light-input-box textarea,
+.light-input-box select {
+    background-color: #f8fafc;
+    border: 1px solid #cbd5e1;
+    color: #0f172a;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius);
+    transition: all 0.3s ease;
+}
+
+.light-input-box input:focus,
+.light-input-box textarea:focus,
+.light-input-box select:focus {
+    background-color: #ffffff;
+    border-color: #4f46e5;
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+}
+
+.light-btn-add {
+    background: #4f46e5;
+    color: #ffffff !important;
+    border: none;
+    box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
+}
+
+.light-btn-add:hover {
+    background: #4338ca;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
+}
