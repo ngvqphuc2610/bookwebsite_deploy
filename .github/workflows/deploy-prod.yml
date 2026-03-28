@@ -42,21 +42,30 @@ jobs:
             # Check if containers are running
             docker compose -f docker-compose.prod.yml ps
 
-            # Check if backend is responding
+            # Check if backend is responding (up to 10 retries, 5s apart)
+            HEALTHY=false
             for i in {1..10}; do
+              echo "🏥 Health check... ($i/10)"
               if curl -sf http://localhost/api/stories > /dev/null 2>&1; then
-                echo "✅ Backend is healthy!"
+                echo "✅ Backend is healthy and responding!"
+                HEALTHY=true
                 break
               fi
-              echo "Waiting for backend... ($i/10)"
+              echo "⚠️ Backend not ready yet, waiting 5s..."
               sleep 5
             done
+
+            if [ "$HEALTHY" = false ]; then
+              echo "❌ ERROR: Backend failed to respond after 10 attempts."
+              echo "🔍 Hint: Run 'docker logs bookwebsite-backend-1' on VPS to see why."
+              exit 1
+            fi
 
             # Check if frontend is responding
             if curl -sf http://localhost > /dev/null 2>&1; then
               echo "✅ Frontend is healthy!"
             else
-              echo "⚠️ Frontend health check failed"
+              echo "⚠️ Frontend health check failed (Nginx might still be starting)"
             fi
 
             echo "🧹 Cleaning up old Docker images..."
