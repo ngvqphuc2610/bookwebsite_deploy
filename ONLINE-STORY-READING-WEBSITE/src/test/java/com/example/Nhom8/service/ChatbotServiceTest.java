@@ -1,6 +1,7 @@
 package com.example.Nhom8.service;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -20,6 +21,7 @@ class ChatbotServiceTest {
         when(ollamaService.chatWithHistory(anyString(), eq("hello"), anyList())).thenReturn("Xin chào!");
 
         ChatbotService service = new ChatbotService(ollamaService, hybridSearchService);
+        ReflectionTestUtils.setField(service, "aiChatEnabled", true);
 
         assertEquals("Xin chào!", service.getResponse("hello"));
         verify(ollamaService).chatWithHistory(anyString(), eq("hello"), eq(java.util.List.of()));
@@ -34,6 +36,20 @@ class ChatbotServiceTest {
                 .thenThrow(new RuntimeException("chat down"));
 
         ChatbotService service = new ChatbotService(ollamaService, hybridSearchService);
+        ReflectionTestUtils.setField(service, "aiChatEnabled", true);
+
+        assertEquals(
+                "Gói Premium cho phép bạn đọc tất cả truyện khóa, không quảng cáo, và ưu tiên chương mới. Vào mục Tài khoản > Nâng cấp Premium để đăng ký!",
+                service.getResponse("premium"));
+    }
+
+    @Test
+    void getResponse_returnsFallbackWhenAiChatDisabled() {
+        OllamaService ollamaService = mock(OllamaService.class);
+        HybridSearchService hybridSearchService = mock(HybridSearchService.class);
+
+        ChatbotService service = new ChatbotService(ollamaService, hybridSearchService);
+        ReflectionTestUtils.setField(service, "aiChatEnabled", false);
 
         assertEquals(
                 "Gói Premium cho phép bạn đọc tất cả truyện khóa, không quảng cáo, và ưu tiên chương mới. Vào mục Tài khoản > Nâng cấp Premium để đăng ký!",
