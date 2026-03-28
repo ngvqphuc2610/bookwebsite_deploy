@@ -52,7 +52,7 @@ services:
       SPRING_MAIL_SMTP_STARTTLS_REQUIRED: ${SPRING_MAIL_SMTP_STARTTLS_REQUIRED:-true}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
-      JAVA_OPTS: ${JAVA_OPTS:--Xms256m -Xmx1024m}
+      JAVA_OPTS: ${JAVA_OPTS:--Xms512m -Xmx2048m}
     depends_on:
       mysql:
         condition: service_healthy
