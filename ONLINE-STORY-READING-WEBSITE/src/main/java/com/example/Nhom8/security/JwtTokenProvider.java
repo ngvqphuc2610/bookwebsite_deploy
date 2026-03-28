@@ -17,11 +17,20 @@ public class JwtTokenProvider {
     private String jwtSecret;
 
     @Value("${app.jwt.expirationMs}")
-    private int jwtExpirationInMs;
+    private String jwtExpirationInMsStr;
 
     private SecretKey getSigningKey() {
-        byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
+        String secret = jwtSecret != null ? jwtSecret.trim().replace("\"", "").replace("'", "") : "9a67475d868a287f3980753f7c4e5e7834241e8c7c94541e2d451a668478465d";
+        byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
         return Keys.hmacShaKeyFor(keyBytes);
+    }
+
+    private int getJwtExpirationInMs() {
+        try {
+            return Integer.parseInt(jwtExpirationInMsStr.trim().replace("\"", "").replace("'", ""));
+        } catch (Exception e) {
+            return 86400000; // Default 1 day
+        }
     }
 
     public String generateToken(Authentication authentication) {
@@ -31,7 +40,7 @@ public class JwtTokenProvider {
 
     public String generateTokenFromUsername(String username) {
         Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
+        Date expiryDate = new Date(now.getTime() + getJwtExpirationInMs());
 
         return Jwts.builder()
                 .subject(username)
