@@ -10,28 +10,28 @@ import java.util.*;
 @Configuration
 public class VNPayConfig {
 
-    @Value("${vnpay.tmn-code}")
+    @Value("${VNPAY_TMN_CODE:9HZKBNNN}")
     public String tmnCode;
 
-    @Value("${vnpay.hash-secret}")
+    @Value("${VNPAY_HASH_SECRET:8HGHV2MT8QI5NLICKG28HOBLJ0AATIE6}")
     public String hashSecret;
 
-    @Value("${vnpay.base-url}")
+    @Value("${VNPAY_BASE_URL:https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}")
     public String vnpPayUrl;
 
-    @Value("${vnpay.version}")
+    @Value("${VNPAY_VERSION:2.1.0}")
     public String version;
 
-    @Value("${vnpay.command}")
+    @Value("${VNPAY_COMMAND:pay}")
     public String command;
 
-    @Value("${vnpay.curr-code}")
+    @Value("${VNPAY_CURR_CODE:VND}")
     public String currCode;
 
-    @Value("${vnpay.locale}")
+    @Value("${VNPAY_LOCALE:vn}")
     public String locale;
 
-    @Value("${vnpay.return-url}")
+    @Value("${VNPAY_RETURN_URL:https://alexdev.software/api/payment/vnpay-callback}")
     public String returnUrl;
 
     public String hashAllFields(Map<String, String> fields) {

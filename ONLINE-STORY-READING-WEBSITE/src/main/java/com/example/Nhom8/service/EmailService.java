@@ -12,7 +12,7 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
 
-    @Value("${spring.mail.username}")
+    @Value("${SPRING_MAIL_USERNAME:}")
     private String fromEmail;
 
     public void sendEmail(String to, String subject, String body) {
