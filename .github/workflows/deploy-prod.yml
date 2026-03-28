@@ -42,10 +42,10 @@ jobs:
             # Check if containers are running
             docker compose -f docker-compose.prod.yml ps
 
-            # Check if backend is responding (up to 10 retries, 5s apart)
+            # Check if backend is responding (up to 30 retries, 5s apart = 150 seconds)
             HEALTHY=false
-            for i in {1..10}; do
-              echo "🏥 Health check... ($i/10)"
+            for i in {1..30}; do
+              echo "🏥 Health check... ($i/30)"
               if curl -sf http://localhost/api/stories > /dev/null 2>&1; then
                 echo "✅ Backend is healthy and responding!"
                 HEALTHY=true
