@@ -26,6 +26,7 @@ public class CustomerCareService {
     private final FaqItemRepository faqItemRepo;
     private final UserRepository userRepo;
     private final SimpMessagingTemplate messagingTemplate;
+    private final FaqIndexService faqIndexService;
 
     // ── Conversation management ──
 
@@ -264,10 +265,21 @@ public class CustomerCareService {
         if (faq.getAnswerText() != null) {
             faq.setAnswerText(faq.getAnswerText().trim());
         }
-        return faqItemRepo.save(faq);
+        FaqItem savedFaq = faqItemRepo.save(faq);
+        try {
+            faqIndexService.indexFaq(savedFaq);
+        } catch (Exception e) {
+            log.warn("Failed to auto-index FAQ id={} in Qdrant: {}", savedFaq.getId(), e.getMessage());
+        }
+        return savedFaq;
     }
 
     public void deleteFaq(Long id) {
         faqItemRepo.deleteById(id);
+        try {
+            faqIndexService.removeFaqVector(id);
+        } catch (Exception e) {
+            log.warn("Failed to auto-remove FAQ id={} from Qdrant: {}", id, e.getMessage());
+        }
     }
 }

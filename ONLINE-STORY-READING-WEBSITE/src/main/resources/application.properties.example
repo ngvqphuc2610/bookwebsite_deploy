@@ -48,7 +48,7 @@ spring.security.oauth2.client.registration.google.client-id=YOUR_GOOGLE_CLIENT_I
 spring.security.oauth2.client.registration.google.client-secret=YOUR_GOOGLE_CLIENT_SECRET
 
 # Qdrant / Ollama
-qdrant.url=${QDRANT_URL:http://qdrant:6333}
+qdrant.url=${QDRANT_URL:http://qdrant:6335}
 qdrant.collection=${QDRANT_COLLECTION:manga}
 qdrant.embed-dim=${QDRANT_EMBED_DIM:768}
 ollama.url=${OLLAMA_URL:http://ollama:11434}

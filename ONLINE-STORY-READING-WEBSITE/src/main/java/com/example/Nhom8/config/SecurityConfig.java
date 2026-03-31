@@ -69,11 +69,12 @@ public class SecurityConfig {
                                 .authorizeHttpRequests(auth -> auth
                                                 .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**")
                                                 .permitAll()
-                                                .requestMatchers("/api/auth/**", "/oauth2/**").permitAll()
-                                                .requestMatchers("/api/stories", "/api/stories/**").permitAll()
-
+                                                // AI & Search public endpoints (Set as highest priority)
                                                 .requestMatchers("/api/manga/**").permitAll()
                                                 .requestMatchers("/api/chatbot/**").permitAll()
+
+                                                .requestMatchers("/api/auth/**", "/oauth2/**").permitAll()
+                                                .requestMatchers("/api/stories", "/api/stories/**").permitAll()
                                                 .requestMatchers("/api/support/**").authenticated()
                                                 .requestMatchers("/ws/**").permitAll()
                                                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/genres",

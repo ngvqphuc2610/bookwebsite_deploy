@@ -1,5 +1,6 @@
 package com.example.Nhom8.controllers;
 
+import com.example.Nhom8.dto.ChatbotResponse;
 import com.example.Nhom8.service.ChatbotService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -15,10 +16,10 @@ public class ChatbotController {
 
     @PostMapping("/ask")
     @SuppressWarnings("unchecked")
-    public ResponseEntity<?> ask(@RequestBody Map<String, Object> request) {
+    public ResponseEntity<ChatbotResponse> ask(@RequestBody Map<String, Object> request) {
         String message = (String) request.get("message");
         List<Map<String, String>> history = (List<Map<String, String>>) request.getOrDefault("history", List.of());
-        String response = chatbotService.getResponse(message, history);
-        return ResponseEntity.ok(Map.of("response", response));
+        ChatbotResponse response = chatbotService.getResponse(message, history);
+        return ResponseEntity.ok(response);
     }
 }

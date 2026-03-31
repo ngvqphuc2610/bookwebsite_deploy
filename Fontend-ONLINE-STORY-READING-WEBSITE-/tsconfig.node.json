@@ -3,13 +3,12 @@
         "composite": true,
         "module": "ESNext",
         "moduleResolution": "Node",
-        "allowSyntheticDefaultImports": true
+        "allowSyntheticDefaultImports": true,
+        "allowJs": true,
+        "noEmit": true,
+        "jsx": "react-jsx"
     },
     "include": [
-        "vite.config.js",
-        "src/**/*.tsx",
-        "src/**/*.ts",
-        "src/**/*.jsx",
-        "src/**/*.js"
+        "vite.config.js"
     ]
 }

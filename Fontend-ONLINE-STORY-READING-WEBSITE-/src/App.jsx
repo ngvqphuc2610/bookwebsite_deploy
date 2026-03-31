@@ -27,7 +27,7 @@ import AdminLogs from './pages/AdminLogs';
 import AdminSettings from './pages/AdminSettings';
 import Favorites from './pages/Favorites';
 import ForgotPassword from './pages/ForgotPassword';
-import Navbar from './components/Navbar';
+// import Navbar from './components/Navbar'; (Consolidated into SiteHeader)
 
 import './App.css';
 
@@ -37,21 +37,7 @@ function App() {
   return (
     <Router>
 
-      <div className="app">
-        <Navbar />
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/admin" element={<AdminUserManagement />} />
-          <Route path="/staff" element={<AdminDashboard />} />
-          <Route path="/staff/import" element={<StaffDashboard />} />
-          <Route path="/login" element={<Login />} />
-          {/* Add more routes as you build them */}
-          <Route path="/genres" element={<div className="container" style={{ paddingTop: '100px' }}><h2>Trang Thể Loại đang phát triển...</h2></div>} />
-          <Route path="/premium" element={<div className="container" style={{ paddingTop: '100px' }}><h2>Trang Premium đang phát triển...</h2></div>} />
-          <Route path="/support" element={<SupportChat />} />
-          <Route path="/admin/support" element={<AdminSupportPanel />} />
-        </Routes>
-      </div>
+
 
       <div className="flex min-h-screen flex-col">
         <SiteHeader />
@@ -161,6 +147,15 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['ADMIN', 'STAFF', 'USER']}>
                   <Favorites />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/support" element={<SupportChat />} />
+            <Route
+              path="/admin/support"
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN']}>
+                  <AdminSupportPanel />
                 </ProtectedRoute>
               }
             />

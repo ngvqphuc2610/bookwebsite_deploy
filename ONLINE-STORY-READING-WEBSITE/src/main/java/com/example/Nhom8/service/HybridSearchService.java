@@ -28,6 +28,9 @@ public class HybridSearchService {
     @Value("${app.features.vector-search-enabled:true}")
     private boolean vectorSearchEnabled;
 
+    @Value("${qdrant.collection:manga}")
+    private String collection;
+
     private static final double VECTOR_WEIGHT = 0.7;
     private static final double MYSQL_WEIGHT = 0.3;
     private static final int DEFAULT_LIMIT = 20;
@@ -68,15 +71,23 @@ public class HybridSearchService {
         }
 
         // 2. Qdrant vector search
-        List<Double> queryVector = ollamaService.embed(query);
-        List<Map<String, Object>> vectorResults = qdrantService.search(queryVector, limit);
+        List<Map<String, Object>> vectorResults = new ArrayList<>();
         Map<Long, Double> qdrantScores = new LinkedHashMap<>();
         Map<Long, Map<String, Object>> qdrantPayloads = new HashMap<>();
-        for (Map<String, Object> hit : vectorResults) {
-            Long id = ((Number) hit.get("id")).longValue();
-            double score = ((Number) hit.get("score")).doubleValue(); // cosine similarity 0..1
-            qdrantScores.put(id, score);
-            qdrantPayloads.put(id, (Map<String, Object>) hit.get("payload"));
+
+        if (vectorSearchEnabled) {
+            try {
+                List<Double> queryVector = ollamaService.embed(query);
+                vectorResults = qdrantService.search(collection, queryVector, limit);
+                for (Map<String, Object> hit : vectorResults) {
+                    Long id = ((Number) hit.get("id")).longValue();
+                    double score = ((Number) hit.get("score")).doubleValue(); // cosine similarity 0..1
+                    qdrantScores.put(id, score);
+                    qdrantPayloads.put(id, (Map<String, Object>) hit.get("payload"));
+                }
+            } catch (Exception e) {
+                log.error("Vector search failed for query '{}': {}. Falling back to MySQL only.", query, e.getMessage());
+            }
         }
 
 
@@ -131,6 +142,130 @@ public class HybridSearchService {
         return merged;
     }
 
+    /**
+     * Hybrid search with metadata pre-filtering.
+     * Qdrant filters are applied BEFORE vector similarity, narrowing the search space.
+     *
+     * @param query     search text
+     * @param limit     max results
+     * @param status    optional: "COMPLETED", "ONGOING"
+     * @param isPremium optional: true/false
+     * @param genres    optional: list of genre names to match
+     */
+    @SuppressWarnings("unchecked")
+    public List<SearchResult> hybridSearch(String query, int limit,
+                                           String status, Boolean isPremium, List<String> genres) {
+        if (limit <= 0) limit = DEFAULT_LIMIT;
+
+        // 1. MySQL fulltext (no filter — we post-filter later if needed)
+        List<Object[]> fulltextResults = storyRepository.fulltextSearch(query, limit * 2);
+        Map<Long, Double> mysqlScores = new LinkedHashMap<>();
+        double maxFt = 0;
+        for (Object[] row : fulltextResults) {
+            Long id = ((Number) row[0]).longValue();
+            double score = ((Number) row[1]).doubleValue();
+            mysqlScores.put(id, score);
+            if (score > maxFt) maxFt = score;
+        }
+        if (maxFt > 0) {
+            for (Map.Entry<Long, Double> e : mysqlScores.entrySet()) {
+                e.setValue(e.getValue() / maxFt);
+            }
+        }
+
+        if (!vectorSearchEnabled) {
+            log.debug("Vector search disabled — returning MySQL-only results (filtered)");
+            return mysqlOnlyResults(mysqlScores, limit);
+        }
+
+        // 2. Build Qdrant filter
+        Map<String, Object> qdrantFilter = buildQdrantFilter(status, isPremium, genres);
+
+        // 3. Qdrant vector search with filter
+        List<Double> queryVector = ollamaService.embed(query);
+        List<Map<String, Object>> vectorResults = qdrantService.searchWithFilter(collection, queryVector, limit, qdrantFilter);
+        Map<Long, Double> qdrantScores = new LinkedHashMap<>();
+        Map<Long, Map<String, Object>> qdrantPayloads = new HashMap<>();
+        for (Map<String, Object> hit : vectorResults) {
+            Long id = ((Number) hit.get("id")).longValue();
+            double score = ((Number) hit.get("score")).doubleValue();
+            qdrantScores.put(id, score);
+            qdrantPayloads.put(id, (Map<String, Object>) hit.get("payload"));
+        }
+
+        // 4. Merge
+        Set<Long> allIds = new LinkedHashSet<>();
+        allIds.addAll(qdrantScores.keySet());
+        allIds.addAll(mysqlScores.keySet());
+
+        List<SearchResult> merged = new ArrayList<>();
+        for (Long id : allIds) {
+            double vs = qdrantScores.getOrDefault(id, 0.0);
+            double ms = mysqlScores.getOrDefault(id, 0.0);
+            double combined = VECTOR_WEIGHT * vs + MYSQL_WEIGHT * ms;
+
+            SearchResult sr = new SearchResult();
+            sr.setStoryId(id);
+            sr.setVectorScore(vs);
+            sr.setMysqlScore(ms);
+            sr.setCombinedScore(combined);
+            sr.setInVector(qdrantScores.containsKey(id));
+            sr.setInMysql(mysqlScores.containsKey(id));
+
+            if (qdrantPayloads.containsKey(id)) {
+                fillFromPayload(sr, qdrantPayloads.get(id));
+            }
+            merged.add(sr);
+        }
+
+        merged.sort(Comparator.comparingDouble(SearchResult::getCombinedScore).reversed());
+        if (merged.size() > limit) {
+            merged = merged.subList(0, limit);
+        }
+
+        // Fill missing data from DB
+        List<Long> missingIds = merged.stream()
+                .filter(r -> r.getTitle() == null)
+                .map(SearchResult::getStoryId)
+                .collect(Collectors.toList());
+        if (!missingIds.isEmpty()) {
+            List<Story> stories = storyRepository.findAllById(missingIds);
+            Map<Long, Story> storyMap = stories.stream()
+                    .collect(Collectors.toMap(Story::getId, s -> s));
+            for (SearchResult r : merged) {
+                if (r.getTitle() == null && storyMap.containsKey(r.getStoryId())) {
+                    fillFromStory(r, storyMap.get(r.getStoryId()));
+                }
+            }
+        }
+
+        return merged;
+    }
+
+    /**
+     * Build a Qdrant "must" filter from optional parameters.
+     */
+    private Map<String, Object> buildQdrantFilter(String status, Boolean isPremium, List<String> genres) {
+        List<Map<String, Object>> mustClauses = new ArrayList<>();
+
+        if (status != null && !status.isBlank()) {
+            mustClauses.add(Map.of("key", "status", "match", Map.of("value", status.toUpperCase())));
+        }
+        if (isPremium != null) {
+            mustClauses.add(Map.of("key", "is_premium", "match", Map.of("value", isPremium)));
+        }
+        if (genres != null && !genres.isEmpty()) {
+            for (String genre : genres) {
+                mustClauses.add(Map.of("key", "genres", "match", Map.of("value", genre)));
+            }
+        }
+
+        if (mustClauses.isEmpty()) {
+            return Map.of(); // no filter
+        }
+        return Map.of("must", mustClauses);
+    }
+
     // ──────────── Recommendation ────────────
 
     /**
@@ -148,7 +283,7 @@ public class HybridSearchService {
             limit = 10;
 
         // Get the story's vector from Qdrant
-        Map<String, Object> point = qdrantService.getPoint(storyId);
+        Map<String, Object> point = qdrantService.getPoint(collection, storyId);
         List<Double> vector;
 
         if (point != null && point.get("vector") != null) {
@@ -161,7 +296,7 @@ public class HybridSearchService {
         }
 
         // Search Qdrant (limit+1 to account for self)
-        List<Map<String, Object>> results = qdrantService.search(vector, limit + 1);
+        List<Map<String, Object>> results = qdrantService.search(collection, vector, limit + 1);
 
         List<SearchResult> recommendations = new ArrayList<>();
         for (Map<String, Object> hit : results) {
@@ -208,7 +343,7 @@ public class HybridSearchService {
         List<Double> vector = ollamaService.embed(text);
         Map<String, Object> point = buildPoint(story, vector);
 
-        qdrantService.upsert(List.of(point));
+        qdrantService.upsert(collection, List.of(point));
         log.info("Reindexed story id={} title='{}'", storyId, story.getTitle());
     }
 
@@ -241,7 +376,7 @@ public class HybridSearchService {
                 points.add(buildPoint(batch.get(j), vectors.get(j)));
             }
 
-            qdrantService.upsert(points);
+            qdrantService.upsert(collection, points);
             count += batch.size();
             log.info("Reindexed batch {}/{}", count, allStories.size());
         }
@@ -257,7 +392,7 @@ public class HybridSearchService {
             log.debug("Vector search disabled — skipping delete from index for story id={}", storyId);
             return;
         }
-        qdrantService.deletePoints(List.of(storyId));
+        qdrantService.deletePoints(collection, List.of(storyId));
         log.info("Deleted story id={} from Qdrant index", storyId);
     }
 
@@ -302,7 +437,7 @@ public class HybridSearchService {
     String composeSearchText(Story story) {
         StringBuilder sb = new StringBuilder();
         sb.append("Title: ").append(story.getTitle());
-        if (story.getAuthor() != null) {
+        if (story.getAuthor() != null && !story.getAuthor().isBlank()) {
             sb.append("\nAuthor: ").append(story.getAuthor());
         }
         if (story.getGenres() != null && !story.getGenres().isEmpty()) {
@@ -311,15 +446,7 @@ public class HybridSearchService {
                     .collect(Collectors.joining(", "));
             sb.append("\nGenres: ").append(genres);
         }
-        if (story.getStatus() != null) {
-            sb.append("\nStatus: ").append(story.getStatus().name());
-        }
-        if (story.getDescription() != null) {
-            String desc = story.getDescription().replaceAll("<[^>]+>", ""); // strip HTML
-            if (desc.length() > 500)
-                desc = desc.substring(0, 500) + "...";
-            sb.append("\nDescription: ").append(desc);
-        }
+        // Removed Status and Description to focus on core metadata per user request
         return sb.toString();
     }
 

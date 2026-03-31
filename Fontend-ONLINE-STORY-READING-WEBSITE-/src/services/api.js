@@ -118,7 +118,15 @@ export const chatbotService = {
 };
 
 export const mangaSearchService = {
-    search: (query, limit = 10) => api.get(`/manga/search?q=${encodeURIComponent(query)}&limit=${limit}`),
+    search: (query, limit = 10, filters = {}) => {
+        let url = `/manga/search?q=${encodeURIComponent(query)}&limit=${limit}`;
+        if (filters.status) url += `&status=${filters.status}`;
+        if (filters.premium !== undefined) url += `&premium=${filters.premium}`;
+        if (filters.genres && filters.genres.length > 0) {
+            url += `&genres=${filters.genres.join(',')}`;
+        }
+        return api.get(url);
+    },
     recommend: (storyId, limit = 10) => api.get(`/manga/${storyId}/recommend?limit=${limit}`),
 };
 

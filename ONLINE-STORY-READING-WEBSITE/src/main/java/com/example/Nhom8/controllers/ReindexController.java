@@ -2,6 +2,7 @@ package com.example.Nhom8.controllers;
 
 import com.example.Nhom8.service.HybridSearchService;
 import com.example.Nhom8.service.QdrantService;
+import com.example.Nhom8.service.FaqIndexService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +21,10 @@ public class ReindexController {
 
     private final HybridSearchService hybridSearchService;
     private final QdrantService qdrantService;
+    private final FaqIndexService faqIndexService;
+
+    @Value("${qdrant.collection:manga}")
+    private String mangaCollection;
 
     @Value("${qdrant.embed-dim:768}")
     private int embedDim;
@@ -42,10 +47,22 @@ public class ReindexController {
      */
     @PostMapping("/reindex/all")
     public ResponseEntity<Map<String, Object>> reindexAll() {
-        qdrantService.ensureCollection(embedDim);
+        qdrantService.ensureCollection(mangaCollection, embedDim);
         int count = hybridSearchService.reindexAll();
         return ResponseEntity.ok(Map.of(
-                "message", "Reindexed all stories",
+                "message", "Reindexed all stories (" + mangaCollection + ")",
+                "count", count));
+    }
+
+    /**
+     * Reindex ALL FAQs into Qdrant vector database.
+     * POST /api/admin/reindex/faqs
+     */
+    @PostMapping("/reindex/faqs")
+    public ResponseEntity<Map<String, Object>> reindexFaqs() {
+        int count = faqIndexService.indexAllFaqs();
+        return ResponseEntity.ok(Map.of(
+                "message", "Reindexed all FAQs",
                 "count", count));
     }
 

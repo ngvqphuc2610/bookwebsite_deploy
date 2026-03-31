@@ -27,7 +27,7 @@ from qdrant_client.models import (
 load_dotenv()
 
 # ──────────── Config ────────────
-QDRANT_URL        = os.getenv("QDRANT_URL", "http://localhost:6333")
+QDRANT_URL        = os.getenv("QDRANT_URL", "http://localhost:6335")
 QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "manga")
 OLLAMA_URL        = os.getenv("OLLAMA_URL", "http://localhost:11434")
 EMBED_MODEL       = os.getenv("EMBED_MODEL", "nomic-embed-text")

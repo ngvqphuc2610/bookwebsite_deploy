@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { storyService, genreService } from '@/services/api';
+import { storyService, genreService, mangaSearchService } from '@/services/api';
 import { StoryCard } from '@/components/story-card';
 import { Loader2, Filter, ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -28,7 +28,8 @@ const CategoryPage = () => {
                 setLoading(true);
                 let response;
                 if (isSearch) {
-                    response = await storyService.search(query, page);
+                    // Update: use Hybrid Search API instead of legacy MySQL fulltext search
+                    response = await mangaSearchService.search(query, 50); // get top 50 matches
                 } else if (filterType === 'ongoing') {
                     response = await storyService.getByStatus('ONGOING', page);
                 } else if (filterType === 'completed') {
@@ -46,8 +47,27 @@ const CategoryPage = () => {
                     response = await storyService.getAll(page);
                 }
 
-                setStories(response.data.content || []);
-                setTotalPages(response.data.totalPages || 0);
+                // mangaSearchService returns { results, count }, while storyService returns { content, totalPages }
+                if (isSearch) {
+                    // Map Hybrid Search Result to Story format expected by StoryCard
+                    const mappedStories = (response.data.results || []).map(r => ({
+                        id: r.storyId,
+                        title: r.title,
+                        author: r.author,
+                        coverImage: r.coverImage,
+                        viewCount: r.viewCount,
+                        rating: r.rating,
+                        status: r.status,
+                        isPremium: r.isPremium,
+                        createdAt: r.createdAt,
+                        searchScore: r.combinedScore // custom property if we want to show it
+                    }));
+                    setStories(mappedStories);
+                    setTotalPages(1); // Vector search is typically single page top-K
+                } else {
+                    setStories(response.data.content || []);
+                    setTotalPages(response.data.totalPages || 0);
+                }
             } catch (error) {
                 console.error("Failed to fetch stories:", error);
                 setStories([]);

@@ -16,12 +16,15 @@ import java.util.*;
 public class QdrantService {
 
     private final RestTemplate restTemplate = new RestTemplate();
+    private final HttpHeaders jsonHeaders;
 
-    @Value("${qdrant.url:http://localhost:6333}")
+    @Value("${qdrant.url:http://localhost:6335}")
     private String qdrantUrl;
 
-    @Value("${qdrant.collection:manga}")
-    private String collection;
+    public QdrantService() {
+        this.jsonHeaders = new HttpHeaders();
+        this.jsonHeaders.setContentType(MediaType.APPLICATION_JSON);
+    }
 
     // ──────────── Search ────────────
 
@@ -29,8 +32,8 @@ public class QdrantService {
      * Vector search — returns list of {id, score, payload}.
      */
     @SuppressWarnings("unchecked")
-    public List<Map<String, Object>> search(List<Double> vector, int limit) {
-        String url = qdrantUrl + "/collections/" + collection + "/points/search";
+    public List<Map<String, Object>> search(String collectionName, List<Double> vector, int limit) {
+        String url = qdrantUrl + "/collections/" + collectionName + "/points/search";
 
         Map<String, Object> body = Map.of(
                 "vector", vector,
@@ -39,7 +42,7 @@ public class QdrantService {
 
         ResponseEntity<Map> resp = restTemplate.postForEntity(url, body, Map.class);
         if (!resp.getStatusCode().is2xxSuccessful() || resp.getBody() == null) {
-            throw new RuntimeException("Qdrant search failed: " + resp.getStatusCode());
+            throw new RuntimeException("Qdrant search failed for " + collectionName + ": " + resp.getStatusCode());
         }
 
         List<Map<String, Object>> result = (List<Map<String, Object>>) resp.getBody().get("result");
@@ -50,9 +53,9 @@ public class QdrantService {
      * Vector search with optional payload filter.
      */
     @SuppressWarnings("unchecked")
-    public List<Map<String, Object>> searchWithFilter(List<Double> vector, int limit,
+    public List<Map<String, Object>> searchWithFilter(String collectionName, List<Double> vector, int limit,
             Map<String, Object> filter) {
-        String url = qdrantUrl + "/collections/" + collection + "/points/search";
+        String url = qdrantUrl + "/collections/" + collectionName + "/points/search";
 
         Map<String, Object> body = new HashMap<>();
         body.put("vector", vector);
@@ -64,7 +67,7 @@ public class QdrantService {
 
         ResponseEntity<Map> resp = restTemplate.postForEntity(url, body, Map.class);
         if (!resp.getStatusCode().is2xxSuccessful() || resp.getBody() == null) {
-            throw new RuntimeException("Qdrant search failed: " + resp.getStatusCode());
+            throw new RuntimeException("Qdrant search with filter failed for " + collectionName + ": " + resp.getStatusCode());
         }
 
         List<Map<String, Object>> result = (List<Map<String, Object>>) resp.getBody().get("result");
@@ -75,19 +78,14 @@ public class QdrantService {
 
     /**
      * Upsert (insert or update) points into collection.
-     *
-     * @param points list of maps each containing {id, vector, payload}
      */
-    public void upsert(List<Map<String, Object>> points) {
-        String url = qdrantUrl + "/collections/" + collection + "/points?wait=true";
+    public void upsert(String collectionName, List<Map<String, Object>> points) {
+        String url = qdrantUrl + "/collections/" + collectionName + "/points?wait=true";
         Map<String, Object> body = Map.of("points", points);
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
-
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, jsonHeaders);
         restTemplate.exchange(url, HttpMethod.PUT, entity, Map.class);
-        log.info("Upserted {} points to Qdrant collection '{}'", points.size(), collection);
+        log.info("Upserted {} points to Qdrant collection '{}'", points.size(), collectionName);
     }
 
     // ──────────── Delete ────────────
@@ -95,12 +93,12 @@ public class QdrantService {
     /**
      * Delete points by their numeric ids.
      */
-    public void deletePoints(List<Long> ids) {
-        String url = qdrantUrl + "/collections/" + collection + "/points/delete?wait=true";
+    public void deletePoints(String collectionName, List<Long> ids) {
+        String url = qdrantUrl + "/collections/" + collectionName + "/points/delete?wait=true";
         Map<String, Object> body = Map.of("points", ids);
 
         restTemplate.postForEntity(url, body, Map.class);
-        log.info("Deleted {} points from Qdrant collection '{}'", ids.size(), collection);
+        log.info("Deleted {} points from Qdrant collection '{}'", ids.size(), collectionName);
     }
 
     // ──────────── Point retrieval ────────────
@@ -109,15 +107,15 @@ public class QdrantService {
      * Get a single point by id (including vector).
      */
     @SuppressWarnings("unchecked")
-    public Map<String, Object> getPoint(Long id) {
-        String url = qdrantUrl + "/collections/" + collection + "/points/" + id;
+    public Map<String, Object> getPoint(String collectionName, Long id) {
+        String url = qdrantUrl + "/collections/" + collectionName + "/points/" + id;
         try {
             ResponseEntity<Map> resp = restTemplate.getForEntity(url, Map.class);
             if (resp.getStatusCode().is2xxSuccessful() && resp.getBody() != null) {
                 return (Map<String, Object>) resp.getBody().get("result");
             }
         } catch (Exception e) {
-            log.warn("Failed to get point {} from Qdrant: {}", id, e.getMessage());
+            log.warn("Failed to get point {} from Qdrant collection {}: {}", id, collectionName, e.getMessage());
         }
         return null;
     }
@@ -128,12 +126,12 @@ public class QdrantService {
      * Ensure the collection exists. Creates it if missing.
      */
     @SuppressWarnings("unchecked")
-    public void ensureCollection(int vectorSize) {
-        String url = qdrantUrl + "/collections/" + collection;
+    public void ensureCollection(String collectionName, int vectorSize) {
+        String url = qdrantUrl + "/collections/" + collectionName;
         try {
             ResponseEntity<Map> resp = restTemplate.getForEntity(url, Map.class);
             if (resp.getStatusCode().is2xxSuccessful()) {
-                log.info("Qdrant collection '{}' already exists", collection);
+                log.info("Qdrant collection '{}' already exists", collectionName);
                 return;
             }
         } catch (Exception ignored) {
@@ -143,11 +141,8 @@ public class QdrantService {
         Map<String, Object> body = Map.of(
                 "vectors", Map.of("size", vectorSize, "distance", "Cosine"));
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
-
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, jsonHeaders);
         restTemplate.exchange(url, HttpMethod.PUT, entity, Map.class);
-        log.info("Created Qdrant collection '{}' (dim={})", collection, vectorSize);
+        log.info("Created Qdrant collection '{}' (dim={})", collectionName, vectorSize);
     }
 }

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, Bot, User, Loader2, Search, BookOpen, Sparkles } from 'lucide-react';
-import { chatbotService, mangaSearchService } from '../services/api';
+import { MessageCircle, X, Send, Bot, User, Loader2, Search, BookOpen, Sparkles, ExternalLink } from 'lucide-react';
+import { chatbotService, storyService } from '../services/api';
+import { getServerUrl } from '../services/api';
 import './ChatBox.css';
 
 const WELCOME_MSG = {
@@ -20,7 +21,6 @@ export default function ChatBox() {
     const [messages, setMessages] = useState([WELCOME_MSG]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
-    const [searchResults, setSearchResults] = useState(null);
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
 
@@ -30,7 +30,7 @@ export default function ChatBox() {
 
     useEffect(() => {
         scrollToBottom();
-    }, [messages, searchResults]);
+    }, [messages]);
 
     useEffect(() => {
         if (isOpen) inputRef.current?.focus();
@@ -38,6 +38,22 @@ export default function ChatBox() {
 
     const formatBotMessage = (text) =>
         text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>');
+
+    /**
+     * Fetch story details for suggested manga IDs and attach as StoryCards.
+     */
+    const fetchSuggestedStories = async (mangaIds) => {
+        if (!mangaIds || mangaIds.length === 0) return [];
+        try {
+            const storyPromises = mangaIds.slice(0, 5).map(id =>
+                storyService.getById(id).then(res => res.data).catch(() => null)
+            );
+            const stories = await Promise.all(storyPromises);
+            return stories.filter(Boolean);
+        } catch {
+            return [];
+        }
+    };
 
     const handleSend = async () => {
         const trimmed = input.trim();
@@ -47,7 +63,6 @@ export default function ChatBox() {
         setMessages((prev) => [...prev, userMsg]);
         setInput('');
         setLoading(true);
-        setSearchResults(null);
 
         try {
             const history = messages
@@ -56,15 +71,19 @@ export default function ChatBox() {
 
             const res = await chatbotService.ask(trimmed, history);
             const botReply = res.data.response || 'Xin lỗi, tôi không hiểu câu hỏi của bạn.';
-            setMessages((prev) => [...prev, { role: 'bot', content: botReply }]);
+            const suggestedIds = res.data.suggestedMangaIds || [];
 
-            try {
-                const searchRes = await mangaSearchService.search(trimmed, 5);
-                if (searchRes.data.results && searchRes.data.results.length > 0) {
-                    setSearchResults(searchRes.data.results);
-                }
-            } catch {
-            }
+            // Fetch rich story data for suggested IDs
+            const suggestedStories = await fetchSuggestedStories(suggestedIds);
+
+            setMessages((prev) => [
+                ...prev,
+                {
+                    role: 'bot',
+                    content: botReply,
+                    suggestedStories: suggestedStories.length > 0 ? suggestedStories : null,
+                },
+            ]);
         } catch (err) {
             console.error('Chatbot error:', err);
             setMessages((prev) => [
@@ -88,6 +107,10 @@ export default function ChatBox() {
         setTimeout(() => inputRef.current?.focus(), 50);
     };
 
+    const handleStoryClick = (story) => {
+        window.open(`/story/${story.id}`, '_blank');
+    };
+
     return (
         <>
             <button
@@ -103,11 +126,11 @@ export default function ChatBox() {
                 <div className="chatbox__header">
                     <div className="chatbox__header-info">
                         <div className="chatbox__header-icon">
-                            <Bot size={18} />
+                            <Bot size={22} strokeWidth={2.5} />
                         </div>
-                        <div>
+                        <div className="chatbox__header-text">
                             <h4>Trợ lý Nhom8 Story</h4>
-                            <span className="chatbox__status">● Đang hoạt động</span>
+                            <span className="chatbox__status">Đang hoạt động</span>
                         </div>
                     </div>
                     <button className="chatbox__close" onClick={() => setIsOpen(false)}>
@@ -117,18 +140,77 @@ export default function ChatBox() {
 
                 <div className="chatbox__messages">
                     {messages.map((msg, i) => (
-                        <div key={i} className={`chatbox__msg chatbox__msg--${msg.role}`}>
-                            <div className="chatbox__msg-avatar">{msg.role === 'bot' ? <Bot size={15} /> : <User size={15} />}</div>
-                            <div className="chatbox__msg-body">
-                                <div className="chatbox__msg-bubble" dangerouslySetInnerHTML={{ __html: formatBotMessage(msg.content) }} />
+                        <div key={i}>
+                            <div className={`chatbox__msg chatbox__msg--${msg.role}`}>
+                                <div className="chatbox__msg-avatar">
+                                    {msg.role === 'bot' ? <Bot size={18} /> : <User size={18} strokeWidth={2.5} />}
+                                </div>
+                                <div className="chatbox__msg-body">
+                                    <div
+                                        className="chatbox__msg-bubble"
+                                        dangerouslySetInnerHTML={{ __html: formatBotMessage(msg.content) }}
+                                    />
+                                </div>
                             </div>
+
+                            {/* Rich Manga Cards — rendered below the bot message */}
+                            {msg.suggestedStories && msg.suggestedStories.length > 0 && (
+                                <div className="chatbox__manga-cards">
+                                    <div className="chatbox__manga-cards-label">
+                                        <Sparkles size={13} />
+                                        Truyện gợi ý
+                                    </div>
+                                    {msg.suggestedStories.map((story) => (
+                                        <div
+                                            key={story.id}
+                                            className="chatbox__manga-card"
+                                            onClick={() => handleStoryClick(story)}
+                                            title={`Đọc ${story.title}`}
+                                        >
+                                            <div className="chatbox__manga-card-cover">
+                                                <img
+                                                    src={getServerUrl(story.coverImage)}
+                                                    alt={story.title}
+                                                    loading="lazy"
+                                                    onError={(e) => {
+                                                        e.target.src = 'https://via.placeholder.com/60x80?text=No+Cover';
+                                                    }}
+                                                />
+                                            </div>
+                                            <div className="chatbox__manga-card-info">
+                                                <strong>{story.title}</strong>
+                                                {story.author && (
+                                                    <span className="chatbox__manga-card-author">{story.author}</span>
+                                                )}
+                                                {story.genres && story.genres.length > 0 && (
+                                                    <div className="chatbox__manga-card-genres">
+                                                        {story.genres.slice(0, 3).map((g) => (
+                                                            <span key={g.name || g} className="chatbox__manga-card-tag">
+                                                                {g.name || g}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                {story.status && (
+                                                    <span
+                                                        className={`chatbox__manga-card-status chatbox__manga-card-status--${story.status?.toLowerCase()}`}
+                                                    >
+                                                        {story.status === 'COMPLETED' ? '✅ Hoàn thành' : '📝 Đang cập nhật'}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <ExternalLink size={14} className="chatbox__manga-card-link" />
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     ))}
 
                     {loading && (
                         <div className="chatbox__msg chatbox__msg--bot">
                             <div className="chatbox__msg-avatar">
-                                <Bot size={15} />
+                                <Bot size={18} />
                             </div>
                             <div className="chatbox__msg-bubble chatbox__msg-typing">
                                 <Loader2 size={15} className="spin" />
@@ -137,24 +219,6 @@ export default function ChatBox() {
                         </div>
                     )}
 
-                    {searchResults && (
-                        <div className="chatbox__search-results">
-                            <div className="chatbox__search-label">
-                                <Sparkles size={13} />
-                                Gợi ý truyện liên quan
-                            </div>
-                            {searchResults.map((result, i) => (
-                                <div key={i} className="chatbox__story-card">
-                                    <BookOpen size={14} />
-                                    <div>
-                                        <strong>{result.title}</strong>
-                                        {result.author && <span className="chatbox__story-author"> — {result.author}</span>}
-                                        {result.genres && <div className="chatbox__story-genres">{result.genres.join(', ')}</div>}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
                     <div ref={messagesEndRef} />
                 </div>
 
@@ -181,7 +245,7 @@ export default function ChatBox() {
                         />
                     </div>
                     <button className="chatbox__send" onClick={handleSend} disabled={!input.trim() || loading}>
-                        <Send size={17} />
+                        <Send size={20} strokeWidth={2.5} />
                     </button>
                 </div>
             </div>
