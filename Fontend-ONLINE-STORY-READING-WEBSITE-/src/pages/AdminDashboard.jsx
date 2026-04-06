@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { storyService, getServerUrl } from '../services/api';
+import React, { useState, useEffect, useRef } from 'react';
+import { storyService, genreService, getServerUrl } from '../services/api';
 import { Plus, Edit2, Trash2, Search, X, Check, AlertCircle, BookOpen, Clock, Star, Eye, User as UserIcon, Settings, Calendar, Filter, Lock, LockOpen, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,7 +13,8 @@ const AdminDashboard = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentStory, setCurrentStory] = useState(null);
-    const formRef = React.useRef(null);
+    const formRef = useRef(null);
+    const [genres, setGenres] = useState([]);
     const [formData, setFormData] = useState({
         title: '',
         slug: '',
@@ -21,14 +22,25 @@ const AdminDashboard = () => {
         description: '',
         coverImage: '',
         status: 'ONGOING',
-        isPremium: false
+        isPremium: false,
+        genres: []
     });
     const [notification, setNotification] = useState(null);
     const [updatingStoryId, setUpdatingStoryId] = useState(null);
 
     useEffect(() => {
         fetchStories();
+        fetchGenres();
     }, []);
+
+    const fetchGenres = async () => {
+        try {
+            const res = await genreService.getAll();
+            setGenres(res.data || []);
+        } catch (e) {
+            console.error('Failed to fetch genres');
+        }
+    };
 
     const fetchStories = async () => {
         try {
@@ -47,6 +59,18 @@ const AdminDashboard = () => {
         setTimeout(() => setNotification(null), 3000);
     };
 
+    const toSlug = (str) => {
+        return str
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[đĐ]/g, "d")
+            .replace(/([^0-9a-z-\s])/g, "")
+            .replace(/(\s+)/g, "-")
+            .replace(/-+/g, "-")
+            .replace(/^-+|-+$/g, "");
+    };
+
     const handleOpenModal = (story = null) => {
         if (story) {
             setCurrentStory(story);
@@ -57,7 +81,8 @@ const AdminDashboard = () => {
                 description: story.description || '',
                 coverImage: story.coverImage || '',
                 status: story.status || 'ONGOING',
-                isPremium: story.isPremium || false
+                isPremium: story.isPremium || false,
+                genres: story.genres ? story.genres.map(g => g.name) : []
             });
         } else {
             setCurrentStory(null);
@@ -68,7 +93,8 @@ const AdminDashboard = () => {
                 description: '',
                 coverImage: '',
                 status: 'ONGOING',
-                isPremium: false
+                isPremium: false,
+                genres: []
             });
         }
         setIsModalOpen(true);
@@ -79,9 +105,30 @@ const AdminDashboard = () => {
 
     const handleInputChange = (e) => {
         const { name, value, type, checked } = e.target;
-        setFormData({
+        
+        let newFormData = {
             ...formData,
             [name]: type === 'checkbox' ? checked : value
+        };
+
+        // Auto-slug if it's a new story and title changes
+        if (name === 'title' && !currentStory) {
+            newFormData.slug = toSlug(value);
+        }
+
+        setFormData(newFormData);
+    };
+
+    const handleGenreToggle = (genreName) => {
+        setFormData(prev => {
+            const currentGenres = [...prev.genres];
+            const index = currentGenres.indexOf(genreName);
+            if (index > -1) {
+                currentGenres.splice(index, 1);
+            } else {
+                currentGenres.push(genreName);
+            }
+            return { ...prev, genres: currentGenres };
         });
     };
 
@@ -341,8 +388,8 @@ const AdminDashboard = () => {
                     </Button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-5">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-1.5">
                             <label className="text-[11px] font-black uppercase tracking-wider text-slate-400 ml-1">Tên tác phẩm</label>
                             <Input
@@ -392,14 +439,49 @@ const AdminDashboard = () => {
                     </div>
 
                     <div className="space-y-1.5">
-                        <label className="text-[11px] font-black uppercase tracking-wider text-slate-400 ml-1">Hệ thống ảnh bìa (Cover URL)</label>
-                        <Input
-                            name="coverImage"
-                            value={formData.coverImage}
-                            onChange={handleInputChange}
-                            className="h-12 px-4 rounded-xl bg-slate-50 border-slate-100 focus:bg-white focus:ring-indigo-500 transition-all text-sm"
-                            placeholder="https://truyenhay.example/image.jpg"
-                        />
+                        <label className="text-[11px] font-black uppercase tracking-wider text-slate-400 ml-1">Thể loại (Tất cả có {genres.length} thể loại)</label>
+                        <div className="flex flex-wrap gap-2 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                            {genres.map(genre => (
+                                <button
+                                    key={genre.id}
+                                    type="button"
+                                    onClick={() => handleGenreToggle(genre.name)}
+                                    className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all border ${
+                                        formData.genres.includes(genre.name)
+                                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-200'
+                                            : 'bg-white text-slate-500 border-slate-200 hover:border-indigo-300'
+                                    }`}
+                                >
+                                    {genre.name}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="md:col-span-2 space-y-1.5">
+                            <label className="text-[11px] font-black uppercase tracking-wider text-slate-400 ml-1">Hệ thống ảnh bìa (Cover URL)</label>
+                            <Input
+                                name="coverImage"
+                                value={formData.coverImage}
+                                onChange={handleInputChange}
+                                className="h-12 px-4 rounded-xl bg-slate-50 border-slate-100 focus:bg-white focus:ring-indigo-500 transition-all text-sm"
+                                placeholder="https://alexstore.example/image.jpg"
+                            />
+                        </div>
+                        <div className="space-y-1.5 flex flex-col justify-end">
+                            <label className="flex items-center gap-3 p-4 rounded-xl bg-slate-50 border border-slate-100 cursor-pointer hover:bg-white transition-all group">
+                                <input
+                                    type="checkbox"
+                                    name="isPremium"
+                                    checked={formData.isPremium}
+                                    onChange={handleInputChange}
+                                    className="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                />
+                                <span className="text-xs font-black uppercase tracking-widest text-slate-600 group-hover:text-indigo-600">Nội dung Premium</span>
+                                <Star size={14} className={formData.isPremium ? 'text-amber-500 fill-amber-500' : 'text-slate-300'} />
+                            </label>
+                        </div>
                     </div>
 
                     <div className="space-y-1.5">
@@ -408,7 +490,7 @@ const AdminDashboard = () => {
                             name="description"
                             value={formData.description}
                             onChange={handleInputChange}
-                            className="w-full min-h-[100px] px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all resize-y"
+                            className="w-full min-h-[120px] px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all resize-y"
                             placeholder="Viết một đoạn giới thiệu hấp dẫn về cốt truyện..."
                         />
                     </div>

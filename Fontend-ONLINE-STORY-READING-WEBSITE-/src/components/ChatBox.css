@@ -1,14 +1,3 @@
-/* d:\2A2026\bookwebsite\Fontend-ONLINE-STORY-READING-WEBSITE-\src\components\ChatBox.css */
-
-/* Modern CSS Reset for Chatbox Scope */
-:root {
-    --chat-gradient: linear-gradient(135deg, #4f46e5, #9333ea, #ec4899);
-    --chat-gradient-hover: linear-gradient(135deg, #4338ca, #7e22ce, #db2777);
-    --chat-border: rgba(226, 232, 240, 0.8);
-    --chat-border-dark: #cbd5e1;
-    --chat-shadow: 0 20px 60px rgba(0, 0, 0, 0.12), 0 10px 30px rgba(99, 102, 241, 0.1);
-}
-
 .chatbox-trigger {
     position: fixed;
     right: 24px;
@@ -17,68 +6,59 @@
     height: 60px;
     border: none;
     border-radius: 50%;
-    background: var(--chat-gradient);
+    background: linear-gradient(135deg, #6366f1, #a855f7);
     color: #fff;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    z-index: 99999; /* Luôn đè lên trên mọi thứ */
-    box-shadow: 0 14px 35px rgba(99, 102, 241, 0.4);
-    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease, opacity 0.2s ease;
+    z-index: 9999;
+    box-shadow: 0 14px 35px rgba(99, 102, 241, 0.35);
+    transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.25s ease, opacity 0.2s ease;
 }
 
 .chatbox-trigger:hover {
     transform: translateY(-4px) scale(1.08);
-    box-shadow: 0 18px 45px rgba(99, 102, 241, 0.5);
+    box-shadow: 0 20px 45px rgba(99, 102, 241, 0.45);
 }
 
 .chatbox-trigger--hidden {
     opacity: 0;
     pointer-events: none;
-    transform: scale(0.6) translateY(20px);
+    transform: scale(0.7);
 }
 
 .chatbox-trigger__badge {
     position: absolute;
     top: -2px;
     right: -2px;
-    background: #10b981; /* Xanh lá emerald sáng */
+    background: #ef4444;
     color: #fff;
-    font-size: 11px;
+    font-size: 9px;
     font-weight: 800;
     border-radius: 999px;
-    padding: 2px 8px;
-    border: 2px solid white;
-    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
+    padding: 2px 6px;
+    border: 2px solid #fff;
 }
 
-/* KHUNG CHAT MỚI - GLASSMORPHISM ĐỈNH CAO */
 .chatbox {
     position: fixed;
     right: 24px;
-    bottom: 24px;
+    bottom: 96px;
     width: 400px;
-    height: min(78vh, 700px);
-    
-    /* Vấn đề trọng tâm của file cũ là đây: */
-    background: rgba(255, 255, 255, 0.95); 
-    backdrop-filter: blur(24px); /* Hiệu ứng mờ nền */
-    -webkit-backdrop-filter: blur(24px);
-    
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    border-radius: 24px; /* Bo góc mượt chuẩn iOS */
+    height: min(75vh, 650px);
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 24px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    z-index: 100000; /* Nằm TRÊN CÙNG mọi element của website */
-    box-shadow: var(--chat-shadow);
-    
+    z-index: 10000;
+    box-shadow: 0 28px 70px rgba(0, 0, 0, 0.15);
     opacity: 0;
     pointer-events: none;
-    transform: translateY(24px) scale(0.95);
-    transform-origin: bottom right;
-    transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+    transform: translateY(30px) scale(0.95);
+    transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .chatbox--open {
@@ -87,15 +67,13 @@
     transform: translateY(0) scale(1);
 }
 
-/* HEADER KIỂU MỚI: Màu rực rỡ, chữ trắng nét đậm */
 .chatbox__header {
-    background: var(--chat-gradient);
-    color: #ffffff;
+    background: linear-gradient(135deg, #6366f1, #a855f7);
+    color: #fff;
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 18px 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .chatbox__header-info {
@@ -105,78 +83,58 @@
 }
 
 .chatbox__header-icon {
-    width: 40px;
-    height: 40px;
+    width: 38px;
+    height: 38px;
     border-radius: 12px;
     background: rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(8px);
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(4px);
 }
 
-.chatbox__header-text {
-    display: flex;
-    flex-direction: column;
-}
-
-.chatbox__header-text h4 {
+.chatbox__header h4 {
     margin: 0;
-    font-size: 16px;
-    font-weight: 800;
-    letter-spacing: -0.3px;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
 }
 
 .chatbox__status {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.9);
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.85);
     display: flex;
     align-items: center;
     gap: 4px;
-    font-weight: 600;
 }
 
-/* Nút chấm bi xanh nhấp nháy cho chữ "Đang hoạt động" */
 .chatbox__status::before {
     content: '';
-    display: block;
     width: 6px;
     height: 6px;
-    background: #10b981;
+    background: #4ade80;
     border-radius: 50%;
-    box-shadow: 0 0 0 rgba(16, 185, 129, 0.4);
-    animation: pulse-green 2s infinite;
-}
-
-@keyframes pulse-green {
-    0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
-    70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    display: inline-block;
 }
 
 .chatbox__close {
-    width: 36px;
-    height: 36px;
+    width: 34px;
+    height: 34px;
     border: none;
-    border-radius: 12px;
+    border-radius: 10px;
     color: #fff;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.15);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background 0.2s ease;
 }
 
 .chatbox__close:hover {
     background: rgba(255, 255, 255, 0.25);
-    transform: scale(1.05);
 }
 
-/* KHUNG CHỨA TIN NHẮN (TRONG SUỐT HOÀN TOÀN) */
 .chatbox__messages {
     flex: 1;
     overflow-y: auto;
@@ -184,7 +142,7 @@
     display: flex;
     flex-direction: column;
     gap: 16px;
-    background: transparent;
+    background: #f8fafc;
 }
 
 .chatbox__messages::-webkit-scrollbar {
@@ -192,16 +150,15 @@
 }
 
 .chatbox__messages::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 999px;
+    background: #e2e8f0;
+    border-radius: 10px;
 }
 
-/* TIN NHẮN BUBBLE STYLE */
 .chatbox__msg {
-    max-width: 88%;
+    max-width: 85%;
     display: flex;
     gap: 10px;
-    animation: fadeIn 0.3s ease forwards;
+    animation: fadeIn 0.3s ease-out;
 }
 
 @keyframes fadeIn {
@@ -217,24 +174,23 @@
 .chatbox__msg-avatar {
     width: 32px;
     height: 32px;
-    border-radius: 50%;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
 }
 
 .chatbox__msg--bot .chatbox__msg-avatar {
-    background: linear-gradient(135deg, #e0e7ff, #ede9fe);
-    color: #4f46e5;
-    border: 1px solid #c7d2fe;
-    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.15);
+    background: #fff;
+    color: #6366f1;
+    border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .chatbox__msg--user .chatbox__msg-avatar {
-    background: linear-gradient(135deg, #4f46e5, #ec4899);
+    background: #6366f1;
     color: #fff;
-    box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
 }
 
 .chatbox__msg-body {
@@ -243,39 +199,37 @@
 
 .chatbox__msg-bubble {
     padding: 12px 16px;
+    border-radius: 16px;
     font-size: 14px;
-    line-height: 1.5;
+    line-height: 1.55;
     word-break: break-word;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
 }
 
-.chatbox__msg-bubble strong {
-    font-weight: 800;
-}
-
-/* MÀU SẮC ĐẸP: TIN CỦA BOT LÀ XÁM SÁNG BÓNG, CHỮ ĐẬM */
 .chatbox__msg--bot .chatbox__msg-bubble {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    color: #1e293b;
-    border-radius: 4px 20px 20px 20px;
+    background: #fff;
+    color: #334155;
+    border-top-left-radius: 4px;
+    border: 1px solid rgba(0,0,0,0.04);
 }
 
-/* MÀU SẮC ĐẸP: TIN CỦA USER LÀ MÀU INDIGO RỰC RỠ */
+.chatbox__msg--bot .chatbox__msg-bubble strong {
+    color: #6366f1;
+}
+
 .chatbox__msg--user .chatbox__msg-bubble {
-    background: linear-gradient(135deg, #4f46e5, #6366f1);
-    color: #ffffff;
-    border-radius: 20px 4px 20px 20px;
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+    background: #6366f1;
+    color: #fff;
+    border-top-right-radius: 4px;
 }
 
 .chatbox__msg-typing {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     color: #64748b;
-    font-weight: 600;
-    background: #f1f5f9 !important;
+    font-size: 13px;
+    font-style: italic;
 }
 
 .spin {
@@ -287,188 +241,104 @@
     to { transform: rotate(360deg); }
 }
 
-/* ── RICH MANGA CARDS (AI Suggested) ── */
-.chatbox__manga-cards {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 8px 0 4px 42px; /* aligned with bot message body */
-    animation: fadeIn 0.4s ease forwards;
-}
-
-.chatbox__manga-cards-label {
-    font-size: 13px;
-    color: #64748b;
-    font-weight: 800;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: 4px;
-}
-
-.chatbox__manga-card {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 16px;
-    padding: 10px 12px;
-    font-size: 13px;
-    transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
-    cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
-    position: relative;
-    overflow: hidden;
-}
-
-.chatbox__manga-card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.03), rgba(236, 72, 153, 0.03));
-    opacity: 0;
-    transition: opacity 0.25s ease;
-}
-
-.chatbox__manga-card:hover {
-    border-color: #a5b4fc;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.12);
-}
-
-.chatbox__manga-card:hover::before {
-    opacity: 1;
-}
-
-/* Cover image thumbnail */
-.chatbox__manga-card-cover {
-    width: 48px;
-    height: 64px;
-    border-radius: 10px;
-    overflow: hidden;
-    flex-shrink: 0;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    border: 1px solid rgba(0, 0, 0, 0.06);
-}
-
-.chatbox__manga-card-cover img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.3s ease;
-}
-
-.chatbox__manga-card:hover .chatbox__manga-card-cover img {
-    transform: scale(1.08);
-}
-
-/* Card info area */
-.chatbox__manga-card-info {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-}
-
-.chatbox__manga-card-info strong {
-    color: #1e293b;
-    font-size: 13.5px;
-    font-weight: 700;
-    line-height: 1.3;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    transition: color 0.2s ease;
-}
-
-.chatbox__manga-card:hover .chatbox__manga-card-info strong {
-    color: #4f46e5;
-}
-
-.chatbox__manga-card-author {
-    color: #64748b;
-    font-size: 11.5px;
-    font-weight: 500;
-}
-
-/* Genre tags */
-.chatbox__manga-card-genres {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    margin-top: 2px;
-}
-
-.chatbox__manga-card-tag {
-    font-size: 10.5px;
-    font-weight: 600;
-    padding: 2px 7px;
-    border-radius: 6px;
-    background: linear-gradient(135deg, #eef2ff, #ede9fe);
-    color: #4f46e5;
-    border: 1px solid #e0e7ff;
-    white-space: nowrap;
-}
-
-/* Status badge */
-.chatbox__manga-card-status {
-    font-size: 10.5px;
-    font-weight: 700;
-    margin-top: 1px;
-}
-
-.chatbox__manga-card-status--completed {
-    color: #059669;
-}
-
-.chatbox__manga-card-status--ongoing {
-    color: #d97706;
-}
-
-/* External link icon */
-.chatbox__manga-card-link {
-    flex-shrink: 0;
-    color: #cbd5e1;
-    transition: color 0.2s ease;
-}
-
-.chatbox__manga-card:hover .chatbox__manga-card-link {
-    color: #6366f1;
-}
-
-/* Legacy card styles (kept for backward compat) */
 .chatbox__search-results {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding-top: 4px;
+    gap: 12px;
+    padding: 14px;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    margin: 4px 0;
+}
+
+.chatbox__search-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
 .chatbox__search-label {
-    font-size: 13px;
-    color: #64748b;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #4f46e5;
     font-weight: 800;
     display: flex;
     align-items: center;
     gap: 6px;
 }
 
-.chatbox__story-card {
-    display: none; /* hidden, replaced by manga-card */
+.chatbox__search-clear {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-/* NÚT BẤM QUICK ACTIONS: HÀNH ĐỘNG NHANH */
-.chatbox__quick-actions {
+.chatbox__search-clear:hover {
+    background: #e2e8f0;
+    color: #64748b;
+}
+
+.chatbox__story-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.chatbox__story-card {
     display: flex;
     gap: 10px;
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 10px 12px;
+    font-size: 13px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.chatbox__story-card:hover {
+    transform: translateX(4px);
+    border-color: #6366f1;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.08);
+}
+
+.chatbox__story-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.chatbox__story-info strong {
+    color: #1e293b;
+    display: block;
+    margin-bottom: 2px;
+}
+
+.chatbox__story-meta {
+    color: #64748b;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+}
+
+.chatbox__story-dot {
+    margin: 0 6px;
+}
+
+.chatbox__quick-actions {
+    display: flex;
+    gap: 8px;
     overflow-x: auto;
-    border-top: 1px solid var(--chat-border);
-    padding: 14px 20px;
-    background: rgba(255, 255, 255, 0.6);
+    padding: 12px 20px;
+    background: #fff;
 }
 
 .chatbox__quick-actions::-webkit-scrollbar {
@@ -476,36 +346,31 @@
 }
 
 .chatbox__quick-actions button {
-    border: 1px solid var(--chat-border-dark);
-    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    background: #fff;
     color: #475569;
     font-size: 13px;
-    font-weight: 600;
-    border-radius: 999px;
+    font-weight: 500;
+    border-radius: 99px;
     padding: 8px 16px;
     cursor: pointer;
     white-space: nowrap;
     transition: all 0.2s ease;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.02);
 }
 
 .chatbox__quick-actions button:hover {
+    background: #f1f5f9;
     border-color: #6366f1;
-    color: #4f46e5;
-    background: #eef2ff;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+    color: #6366f1;
 }
 
-/* KHU VỰC NHẬP TEXT XỊN SÒ */
 .chatbox__input-area {
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     gap: 12px;
-    padding: 12px 20px 20px;
-    background: rgba(255, 255, 255, 0.8);
-    border-bottom-left-radius: 24px;
-    border-bottom-right-radius: 24px;
+    padding: 16px 20px 20px;
+    background: #fff;
+    border-top: 1px solid #f1f5f9;
 }
 
 .chatbox__input-wrap {
@@ -513,92 +378,66 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    border: 1px solid var(--chat-border-dark);
-    background: #ffffff;
-    border-radius: 20px;
-    padding: 6px 16px;
-    color: #64748b;
+    background: #f1f5f9;
+    border-radius: 14px;
+    padding: 0 14px;
     transition: all 0.2s ease;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.02) inset;
 }
 
 .chatbox__input-wrap:focus-within {
-    border-color: #6366f1;
-    background: #ffffff;
-    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
-}
-
-.chatbox__input-wrap svg {
-    color: #94a3b8;
-}
-
-.chatbox__input-wrap:focus-within svg {
-    color: #6366f1;
+    background: #fff;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
 }
 
 .chatbox__input {
     flex: 1;
-    height: 38px;
+    height: 44px;
     border: none;
     background: transparent;
-    color: #0f172a;
+    color: #1e293b;
     font-size: 14px;
-    font-weight: 500;
     outline: none;
-    padding: 0;
 }
 
 .chatbox__input::placeholder {
     color: #94a3b8;
-    font-weight: 400;
 }
 
 .chatbox__send {
-    width: 52px;
-    height: 52px;
-    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
     border: none;
-    border-radius: 20px;
-    background: var(--chat-gradient);
+    border-radius: 12px;
+    background: #6366f1;
     color: #fff;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
-    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: all 0.2s ease;
 }
 
 .chatbox__send:hover:not(:disabled) {
-    transform: translateY(-2px) scale(1.05);
-    box-shadow: 0 8px 25px rgba(99, 102, 241, 0.45);
-    background: var(--chat-gradient-hover);
-}
-
-.chatbox__send:active:not(:disabled) {
-    transform: scale(0.95);
+    background: #4f46e5;
+    transform: scale(1.05);
 }
 
 .chatbox__send:disabled {
-    background: #e2e8f0;
-    color: #94a3b8;
-    box-shadow: none;
+    opacity: 0.4;
     cursor: not-allowed;
-    transform: none;
 }
 
-/* RESPONSIVE MOBILE */
 @media (max-width: 640px) {
     .chatbox {
-        width: calc(100vw - 20px);
-        height: calc(100vh - 100px);
-        right: 10px;
-        bottom: 10px;
-        border-radius: 20px;
-        box-shadow: 0 20px 100px rgba(0,0,0,0.3);
+        width: 100vw;
+        height: 100vh;
+        right: 0;
+        bottom: 0;
+        border-radius: 0;
     }
-    
-    .chatbox__input-area {
-        padding: 12px 16px 16px;
+
+    .chatbox-trigger {
+        right: 20px;
+        bottom: 20px;
     }
 }

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { authService, SERVER_URL } from '../services/api';
-import { User, Lock, Mail, Type, Image as ImageIcon, ArrowLeft } from 'lucide-react';
+import { authService, getServerUrl } from '../services/api';
+import { User, Lock, Mail, Type, Image as ImageIcon, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +18,8 @@ const Login = () => {
     });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [showLoginPassword, setShowLoginPassword] = useState(false);
+    const [showRegPassword, setShowRegPassword] = useState(false);
     const navigate = useNavigate();
 
     const handleInputChange = (e) => {
@@ -78,7 +80,7 @@ const Login = () => {
 
             <Card className="relative z-10 w-full max-w-md border-border/40 bg-background/80 backdrop-blur-xl shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <CardHeader className="text-center space-y-2">
-                    <CardTitle className="text-3xl font-serif font-bold tracking-tight">TruyenHay</CardTitle>
+                    <CardTitle className="text-3xl font-serif font-bold tracking-tight">AlexStore</CardTitle>
                     <CardDescription className="text-muted-foreground italic">Thế giới truyện trong tầm tay bạn</CardDescription>
                 </CardHeader>
 
@@ -133,13 +135,20 @@ const Login = () => {
                                         <Input
                                             id="login-password"
                                             name="password"
-                                            type="password"
+                                            type={showLoginPassword ? "text" : "password"}
                                             placeholder="••••••••"
-                                            className="pl-10 h-11 bg-muted/30 border-border/50 focus:border-primary/50 transition-colors"
+                                            className="pl-10 pr-10 h-11 bg-muted/30 border-border/50 focus:border-primary/50 transition-colors"
                                             value={formData.password}
                                             onChange={handleInputChange}
                                             required
                                         />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowLoginPassword(!showLoginPassword)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                        >
+                                            {showLoginPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                        </button>
                                     </div>
                                 </div>
                                 <Button type="submit" className="w-full h-11 text-base font-semibold shadow-lg shadow-primary/20" disabled={loading}>
@@ -205,13 +214,20 @@ const Login = () => {
                                         <Input
                                             id="reg-password"
                                             name="password"
-                                            type="password"
+                                            type={showRegPassword ? "text" : "password"}
                                             placeholder="••••••••"
-                                            className="pl-10 h-10 bg-muted/30 border-border/50 focus:border-primary/50 transition-colors"
+                                            className="pl-10 pr-10 h-10 bg-muted/30 border-border/50 focus:border-primary/50 transition-colors"
                                             value={formData.password}
                                             onChange={handleInputChange}
                                             required
                                         />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowRegPassword(!showRegPassword)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                        >
+                                            {showRegPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                        </button>
                                     </div>
                                 </div>
                                 <div className="space-y-2">
@@ -249,13 +265,10 @@ const Login = () => {
                     <div className="flex gap-4 w-full">
                         <Button
                             variant="outline"
-                            className="flex-1 h-10 border-border/50 hover:bg-muted/50"
-                            onClick={() => window.location.href = `${SERVER_URL}/oauth2/authorization/google`}
+                            className="flex-1 h-10 border-border/50 hover:bg-muted/50 w-full"
+                            onClick={() => window.location.href = getServerUrl('/oauth2/authorization/google')}
                         >
                             Google
-                        </Button>
-                        <Button variant="outline" className="flex-1 h-10 border-border/50 hover:bg-muted/50">
-                            Facebook
                         </Button>
                     </div>
 

@@ -45,25 +45,18 @@ public class OllamaService {
                 "model", embedModel,
                 "input", texts);
 
-        try {
-            ResponseEntity<Map> resp = restTemplate.postForEntity(url, body, Map.class);
-            if (!resp.getStatusCode().is2xxSuccessful() || resp.getBody() == null) {
-                log.error("Ollama embed failed. Status: {}, Body: {}", resp.getStatusCode(), resp.getBody());
-                throw new RuntimeException("Ollama embed failed: " + resp.getStatusCode());
-            }
-
-            List<List<Double>> embeddings = (List<List<Double>>) resp.getBody().get("embeddings");
-            if (embeddings == null || embeddings.size() != texts.size()) {
-                log.error("Ollama returned invalid embeddings. Expected {}, got {}", texts.size(), (embeddings == null ? 0 : embeddings.size()));
-                throw new RuntimeException(
-                        "Ollama returned " + (embeddings == null ? 0 : embeddings.size())
-                                + " embeddings, expected " + texts.size());
-            }
-            return embeddings;
-        } catch (Exception e) {
-            log.error("Error during Ollama embedding: {}", e.getMessage());
-            throw e;
+        ResponseEntity<Map> resp = restTemplate.postForEntity(url, body, Map.class);
+        if (!resp.getStatusCode().is2xxSuccessful() || resp.getBody() == null) {
+            throw new RuntimeException("Ollama embed failed: " + resp.getStatusCode());
         }
+
+        List<List<Double>> embeddings = (List<List<Double>>) resp.getBody().get("embeddings");
+        if (embeddings == null || embeddings.size() != texts.size()) {
+            throw new RuntimeException(
+                    "Ollama returned " + (embeddings == null ? 0 : embeddings.size())
+                            + " embeddings, expected " + texts.size());
+        }
+        return embeddings;
     }
 
     // ──────────── Chat ────────────

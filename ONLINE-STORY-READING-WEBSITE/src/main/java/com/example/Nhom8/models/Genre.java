@@ -10,10 +10,15 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@org.hibernate.annotations.SQLDelete(sql = "UPDATE genres SET deleted = true WHERE id=?")
+@org.hibernate.annotations.Where(clause = "deleted=false")
 public class Genre {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Builder.Default
+    private boolean deleted = false;
 
     @Column(unique = true, nullable = false)
     private String name;

@@ -35,6 +35,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     long countByStatus(com.example.Nhom8.models.Transaction.TransactionStatus status);
 
     List<Transaction> findTop10ByOrderByCreatedAtDesc();
+
     List<Transaction> findAllByOrderByCreatedAtDesc();
 
     // For Statistics

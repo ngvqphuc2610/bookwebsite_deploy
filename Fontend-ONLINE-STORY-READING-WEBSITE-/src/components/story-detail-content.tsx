@@ -60,17 +60,11 @@ export function StoryDetailContent({ story, initialChapters }: StoryDetailConten
         setCheckingPremium(true);
         const localUser = JSON.parse(localStorage.getItem('user') || 'null');
         if (localUser) {
-          // Check role first
-          const isAdminOrStaff = localUser.roles?.includes('ADMIN') || localUser.roles?.includes('STAFF');
-          if (isAdminOrStaff) {
-            setIsPremiumUser(true);
-          } else {
-            // Fetch profile for latest premium status
-            const { userService } = await import('@/services/api');
-            const res = await userService.getProfile();
-            const expiry = res.data.premiumExpiry ? new Date(res.data.premiumExpiry) : null;
-            setIsPremiumUser(res.data.isPremium && expiry && expiry > new Date());
-          }
+          // Fetch profile for latest premium status
+          const { userService } = await import('@/services/api');
+          const res = await userService.getProfile();
+          const expiry = res.data.premiumExpiry ? new Date(res.data.premiumExpiry) : null;
+          setIsPremiumUser(res.data.isPremium && expiry && expiry > new Date());
 
           // Fetch progress
           const { readingProgressService, favoriteService, ratingService } = await import('@/services/api');

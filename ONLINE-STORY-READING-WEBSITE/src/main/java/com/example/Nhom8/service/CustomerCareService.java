@@ -12,7 +12,7 @@ import java.text.Normalizer;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+
 
 @Service
 @RequiredArgsConstructor
@@ -26,7 +26,6 @@ public class CustomerCareService {
     private final FaqItemRepository faqItemRepo;
     private final UserRepository userRepo;
     private final SimpMessagingTemplate messagingTemplate;
-    private final FaqIndexService faqIndexService;
 
     // ── Conversation management ──
 
@@ -49,6 +48,10 @@ public class CustomerCareService {
         User user = userRepo.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userId));
         return conversationRepo.findByUserOrderByUpdatedAtDesc(user);
+    }
+
+    public SupportConversation getConversationById(Long id) {
+        return conversationRepo.findById(id).orElse(null);
     }
 
     @Transactional
@@ -94,6 +97,9 @@ public class CustomerCareService {
                 .conversation(conv).senderType(SupportMessage.SenderType.USER)
                 .senderId(senderId).content(content).source(SupportMessage.MessageSource.MANUAL).build());
         broadcastMessage(conv.getId(), userMsg);
+        
+        // Luôn trigger update cho admin để admin thấy có chat mới/tin nhắn mới
+        notifyAdminPending(conv);
 
         // Try FAQ match
         String faqAnswer = matchFaq(content);
@@ -108,7 +114,6 @@ public class CustomerCareService {
         // No FAQ match → escalate to admin
         conv.setStatus(SupportConversation.ConversationStatus.PENDING_ADMIN);
         conversationRepo.save(conv);
-        notifyAdminPending(conv);
         return userMsg;
     }
 
@@ -265,21 +270,10 @@ public class CustomerCareService {
         if (faq.getAnswerText() != null) {
             faq.setAnswerText(faq.getAnswerText().trim());
         }
-        FaqItem savedFaq = faqItemRepo.save(faq);
-        try {
-            faqIndexService.indexFaq(savedFaq);
-        } catch (Exception e) {
-            log.warn("Failed to auto-index FAQ id={} in Qdrant: {}", savedFaq.getId(), e.getMessage());
-        }
-        return savedFaq;
+        return faqItemRepo.save(faq);
     }
 
     public void deleteFaq(Long id) {
         faqItemRepo.deleteById(id);
-        try {
-            faqIndexService.removeFaqVector(id);
-        } catch (Exception e) {
-            log.warn("Failed to auto-remove FAQ id={} from Qdrant: {}", id, e.getMessage());
-        }
     }
 }

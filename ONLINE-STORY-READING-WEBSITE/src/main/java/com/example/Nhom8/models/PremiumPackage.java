@@ -11,6 +11,8 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@org.hibernate.annotations.SQLDelete(sql = "UPDATE premium_packages SET deleted = true WHERE id=?")
+@org.hibernate.annotations.Where(clause = "deleted=false")
 public class PremiumPackage {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -25,4 +27,7 @@ public class PremiumPackage {
     private BigDecimal price;
 
     private int durationDays;
+
+    @Builder.Default
+    private boolean deleted = false;
 }

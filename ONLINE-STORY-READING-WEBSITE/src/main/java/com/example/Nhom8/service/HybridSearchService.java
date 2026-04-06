@@ -5,16 +5,16 @@ import com.example.Nhom8.models.Story;
 import com.example.Nhom8.repository.StoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 
 /**
  * Hybrid search: MySQL FULLTEXT + Qdrant vector → weighted merge → rerank.
  * Also handles recommendation and reindexing.
- * When vector search is disabled, falls back to MySQL-only search.
  */
 @Service
 @RequiredArgsConstructor
@@ -25,16 +25,9 @@ public class HybridSearchService {
     private final QdrantService qdrantService;
     private final StoryRepository storyRepository;
 
-    @Value("${app.features.vector-search-enabled:true}")
-    private boolean vectorSearchEnabled;
-
-    @Value("${qdrant.collection:manga}")
-    private String collection;
-
     private static final double VECTOR_WEIGHT = 0.7;
     private static final double MYSQL_WEIGHT = 0.3;
     private static final int DEFAULT_LIMIT = 20;
-
 
     // ──────────── Hybrid search ────────────
 
@@ -46,8 +39,10 @@ public class HybridSearchService {
         if (limit <= 0)
             limit = DEFAULT_LIMIT;
 
+        String cleanedQuery = query.trim();
+
         // 1. MySQL fulltext search
-        List<Object[]> fulltextResults = storyRepository.fulltextSearch(query, limit);
+        List<Object[]> fulltextResults = storyRepository.fulltextSearch(cleanedQuery, limit);
         Map<Long, Double> mysqlScores = new LinkedHashMap<>();
         double maxFt = 0;
         for (Object[] row : fulltextResults) {
@@ -57,6 +52,15 @@ public class HybridSearchService {
             if (score > maxFt)
                 maxFt = score;
         }
+
+        // 1b. Exact match boost (Title or Author)
+        List<Story> exactMatches = storyRepository.findByTitleContainingIgnoreCaseOrAuthorContainingIgnoreCase(cleanedQuery, cleanedQuery);
+        for (Story s : exactMatches) {
+            double boost = s.getTitle().equalsIgnoreCase(cleanedQuery) || s.getAuthor().equalsIgnoreCase(cleanedQuery) ? 2.0 : 1.2;
+            mysqlScores.put(s.getId(), mysqlScores.getOrDefault(s.getId(), 0.0) + boost);
+            if (mysqlScores.get(s.getId()) > maxFt) maxFt = mysqlScores.get(s.getId());
+        }
+
         // Normalize MySQL scores to 0..1
         if (maxFt > 0) {
             for (Map.Entry<Long, Double> e : mysqlScores.entrySet()) {
@@ -64,32 +68,17 @@ public class HybridSearchService {
             }
         }
 
-        // If vector search is disabled, return MySQL-only results
-        if (!vectorSearchEnabled) {
-            log.debug("Vector search disabled — returning MySQL-only results");
-            return mysqlOnlyResults(mysqlScores, limit);
-        }
-
         // 2. Qdrant vector search
-        List<Map<String, Object>> vectorResults = new ArrayList<>();
+        List<Double> queryVector = ollamaService.embed(cleanedQuery);
+        List<Map<String, Object>> vectorResults = qdrantService.search(queryVector, limit);
         Map<Long, Double> qdrantScores = new LinkedHashMap<>();
         Map<Long, Map<String, Object>> qdrantPayloads = new HashMap<>();
-
-        if (vectorSearchEnabled) {
-            try {
-                List<Double> queryVector = ollamaService.embed(query);
-                vectorResults = qdrantService.search(collection, queryVector, limit);
-                for (Map<String, Object> hit : vectorResults) {
-                    Long id = ((Number) hit.get("id")).longValue();
-                    double score = ((Number) hit.get("score")).doubleValue(); // cosine similarity 0..1
-                    qdrantScores.put(id, score);
-                    qdrantPayloads.put(id, (Map<String, Object>) hit.get("payload"));
-                }
-            } catch (Exception e) {
-                log.error("Vector search failed for query '{}': {}. Falling back to MySQL only.", query, e.getMessage());
-            }
+        for (Map<String, Object> hit : vectorResults) {
+            Long id = ((Number) hit.get("id")).longValue();
+            double score = ((Number) hit.get("score")).doubleValue(); // cosine similarity 0..1
+            qdrantScores.put(id, score);
+            qdrantPayloads.put(id, (Map<String, Object>) hit.get("payload"));
         }
-
 
         // 3. Merge — weighted sum
         Set<Long> allIds = new LinkedHashSet<>();
@@ -142,148 +131,18 @@ public class HybridSearchService {
         return merged;
     }
 
-    /**
-     * Hybrid search with metadata pre-filtering.
-     * Qdrant filters are applied BEFORE vector similarity, narrowing the search space.
-     *
-     * @param query     search text
-     * @param limit     max results
-     * @param status    optional: "COMPLETED", "ONGOING"
-     * @param isPremium optional: true/false
-     * @param genres    optional: list of genre names to match
-     */
-    @SuppressWarnings("unchecked")
-    public List<SearchResult> hybridSearch(String query, int limit,
-                                           String status, Boolean isPremium, List<String> genres) {
-        if (limit <= 0) limit = DEFAULT_LIMIT;
-
-        // 1. MySQL fulltext (no filter — we post-filter later if needed)
-        List<Object[]> fulltextResults = storyRepository.fulltextSearch(query, limit * 2);
-        Map<Long, Double> mysqlScores = new LinkedHashMap<>();
-        double maxFt = 0;
-        for (Object[] row : fulltextResults) {
-            Long id = ((Number) row[0]).longValue();
-            double score = ((Number) row[1]).doubleValue();
-            mysqlScores.put(id, score);
-            if (score > maxFt) maxFt = score;
-        }
-        if (maxFt > 0) {
-            for (Map.Entry<Long, Double> e : mysqlScores.entrySet()) {
-                e.setValue(e.getValue() / maxFt);
-            }
-        }
-
-        if (!vectorSearchEnabled) {
-            log.debug("Vector search disabled — returning MySQL-only results (filtered)");
-            return mysqlOnlyResults(mysqlScores, limit);
-        }
-
-        // 2. Build Qdrant filter
-        Map<String, Object> qdrantFilter = buildQdrantFilter(status, isPremium, genres);
-
-        // 3. Qdrant vector search with filter
-        List<Double> queryVector = ollamaService.embed(query);
-        List<Map<String, Object>> vectorResults = qdrantService.searchWithFilter(collection, queryVector, limit, qdrantFilter);
-        Map<Long, Double> qdrantScores = new LinkedHashMap<>();
-        Map<Long, Map<String, Object>> qdrantPayloads = new HashMap<>();
-        for (Map<String, Object> hit : vectorResults) {
-            Long id = ((Number) hit.get("id")).longValue();
-            double score = ((Number) hit.get("score")).doubleValue();
-            qdrantScores.put(id, score);
-            qdrantPayloads.put(id, (Map<String, Object>) hit.get("payload"));
-        }
-
-        // 4. Merge
-        Set<Long> allIds = new LinkedHashSet<>();
-        allIds.addAll(qdrantScores.keySet());
-        allIds.addAll(mysqlScores.keySet());
-
-        List<SearchResult> merged = new ArrayList<>();
-        for (Long id : allIds) {
-            double vs = qdrantScores.getOrDefault(id, 0.0);
-            double ms = mysqlScores.getOrDefault(id, 0.0);
-            double combined = VECTOR_WEIGHT * vs + MYSQL_WEIGHT * ms;
-
-            SearchResult sr = new SearchResult();
-            sr.setStoryId(id);
-            sr.setVectorScore(vs);
-            sr.setMysqlScore(ms);
-            sr.setCombinedScore(combined);
-            sr.setInVector(qdrantScores.containsKey(id));
-            sr.setInMysql(mysqlScores.containsKey(id));
-
-            if (qdrantPayloads.containsKey(id)) {
-                fillFromPayload(sr, qdrantPayloads.get(id));
-            }
-            merged.add(sr);
-        }
-
-        merged.sort(Comparator.comparingDouble(SearchResult::getCombinedScore).reversed());
-        if (merged.size() > limit) {
-            merged = merged.subList(0, limit);
-        }
-
-        // Fill missing data from DB
-        List<Long> missingIds = merged.stream()
-                .filter(r -> r.getTitle() == null)
-                .map(SearchResult::getStoryId)
-                .collect(Collectors.toList());
-        if (!missingIds.isEmpty()) {
-            List<Story> stories = storyRepository.findAllById(missingIds);
-            Map<Long, Story> storyMap = stories.stream()
-                    .collect(Collectors.toMap(Story::getId, s -> s));
-            for (SearchResult r : merged) {
-                if (r.getTitle() == null && storyMap.containsKey(r.getStoryId())) {
-                    fillFromStory(r, storyMap.get(r.getStoryId()));
-                }
-            }
-        }
-
-        return merged;
-    }
-
-    /**
-     * Build a Qdrant "must" filter from optional parameters.
-     */
-    private Map<String, Object> buildQdrantFilter(String status, Boolean isPremium, List<String> genres) {
-        List<Map<String, Object>> mustClauses = new ArrayList<>();
-
-        if (status != null && !status.isBlank()) {
-            mustClauses.add(Map.of("key", "status", "match", Map.of("value", status.toUpperCase())));
-        }
-        if (isPremium != null) {
-            mustClauses.add(Map.of("key", "is_premium", "match", Map.of("value", isPremium)));
-        }
-        if (genres != null && !genres.isEmpty()) {
-            for (String genre : genres) {
-                mustClauses.add(Map.of("key", "genres", "match", Map.of("value", genre)));
-            }
-        }
-
-        if (mustClauses.isEmpty()) {
-            return Map.of(); // no filter
-        }
-        return Map.of("must", mustClauses);
-    }
-
     // ──────────── Recommendation ────────────
 
     /**
      * Recommend similar stories based on vector nearest neighbors.
-     * Returns empty list when vector search is disabled.
      */
     @SuppressWarnings("unchecked")
     public List<SearchResult> recommend(Long storyId, int limit) {
-        if (!vectorSearchEnabled) {
-            log.debug("Vector search disabled — recommendations unavailable");
-            return List.of();
-        }
-
         if (limit <= 0)
             limit = 10;
 
         // Get the story's vector from Qdrant
-        Map<String, Object> point = qdrantService.getPoint(collection, storyId);
+        Map<String, Object> point = qdrantService.getPoint(storyId);
         List<Double> vector;
 
         if (point != null && point.get("vector") != null) {
@@ -296,7 +155,7 @@ public class HybridSearchService {
         }
 
         // Search Qdrant (limit+1 to account for self)
-        List<Map<String, Object>> results = qdrantService.search(collection, vector, limit + 1);
+        List<Map<String, Object>> results = qdrantService.search(vector, limit + 1);
 
         List<SearchResult> recommendations = new ArrayList<>();
         for (Map<String, Object> hit : results) {
@@ -331,11 +190,6 @@ public class HybridSearchService {
      * Reindex a single story in Qdrant.
      */
     public void reindexStory(Long storyId) {
-        if (!vectorSearchEnabled) {
-            log.debug("Vector search disabled — skipping reindex for story id={}", storyId);
-            return;
-        }
-
         Story story = storyRepository.findById(storyId)
                 .orElseThrow(() -> new RuntimeException("Story not found: " + storyId));
 
@@ -343,7 +197,7 @@ public class HybridSearchService {
         List<Double> vector = ollamaService.embed(text);
         Map<String, Object> point = buildPoint(story, vector);
 
-        qdrantService.upsert(collection, List.of(point));
+        qdrantService.upsert(List.of(point));
         log.info("Reindexed story id={} title='{}'", storyId, story.getTitle());
     }
 
@@ -353,17 +207,16 @@ public class HybridSearchService {
      * @return number of stories indexed
      */
     public int reindexAll() {
-        if (!vectorSearchEnabled) {
-            log.warn("Vector search disabled — reindexAll is a no-op");
-            return 0;
-        }
-
-        List<Story> allStories = storyRepository.findAll();
         int count = 0;
         int batchSize = 50;
+        int page = 0;
+        Page<Story> storyPage;
 
-        for (int i = 0; i < allStories.size(); i += batchSize) {
-            List<Story> batch = allStories.subList(i, Math.min(i + batchSize, allStories.size()));
+        do {
+            storyPage = storyRepository.findAll(PageRequest.of(page, batchSize));
+            List<Story> batch = storyPage.getContent();
+            
+            if (batch.isEmpty()) break;
 
             List<String> texts = batch.stream()
                     .map(this::composeSearchText)
@@ -376,10 +229,11 @@ public class HybridSearchService {
                 points.add(buildPoint(batch.get(j), vectors.get(j)));
             }
 
-            qdrantService.upsert(collection, points);
+            qdrantService.upsert(points);
             count += batch.size();
-            log.info("Reindexed batch {}/{}", count, allStories.size());
-        }
+            log.info("Reindexed batch: {}/{} total stories", count, storyPage.getTotalElements());
+            page++;
+        } while (storyPage.hasNext());
 
         return count;
     }
@@ -388,56 +242,16 @@ public class HybridSearchService {
      * Delete a story from Qdrant.
      */
     public void deleteFromIndex(Long storyId) {
-        if (!vectorSearchEnabled) {
-            log.debug("Vector search disabled — skipping delete from index for story id={}", storyId);
-            return;
-        }
-        qdrantService.deletePoints(collection, List.of(storyId));
+        qdrantService.deletePoints(List.of(storyId));
         log.info("Deleted story id={} from Qdrant index", storyId);
-    }
-
-    // ──────────── MySQL-only fallback ────────────
-
-    /**
-     * Build SearchResult list from MySQL FULLTEXT scores only (no vector search).
-     */
-    private List<SearchResult> mysqlOnlyResults(Map<Long, Double> mysqlScores, int limit) {
-        List<Long> ids = new ArrayList<>(mysqlScores.keySet());
-        if (ids.size() > limit) {
-            ids = ids.subList(0, limit);
-        }
-
-        List<Story> stories = storyRepository.findAllById(ids);
-        Map<Long, Story> storyMap = stories.stream()
-                .collect(Collectors.toMap(Story::getId, s -> s));
-
-        List<SearchResult> results = new ArrayList<>();
-        for (Long id : ids) {
-            double ms = mysqlScores.getOrDefault(id, 0.0);
-            SearchResult sr = new SearchResult();
-            sr.setStoryId(id);
-            sr.setMysqlScore(ms);
-            sr.setCombinedScore(ms);
-            sr.setInMysql(true);
-            sr.setInVector(false);
-
-            if (storyMap.containsKey(id)) {
-                fillFromStory(sr, storyMap.get(id));
-            }
-            results.add(sr);
-        }
-
-        results.sort(Comparator.comparingDouble(SearchResult::getCombinedScore).reversed());
-        return results;
     }
 
     // ──────────── Helpers ────────────
 
-
     String composeSearchText(Story story) {
         StringBuilder sb = new StringBuilder();
         sb.append("Title: ").append(story.getTitle());
-        if (story.getAuthor() != null && !story.getAuthor().isBlank()) {
+        if (story.getAuthor() != null) {
             sb.append("\nAuthor: ").append(story.getAuthor());
         }
         if (story.getGenres() != null && !story.getGenres().isEmpty()) {
@@ -446,7 +260,15 @@ public class HybridSearchService {
                     .collect(Collectors.joining(", "));
             sb.append("\nGenres: ").append(genres);
         }
-        // Removed Status and Description to focus on core metadata per user request
+        if (story.getStatus() != null) {
+            sb.append("\nStatus: ").append(story.getStatus().name());
+        }
+        if (story.getDescription() != null) {
+            String desc = story.getDescription().replaceAll("<[^>]+>", ""); // strip HTML
+            if (desc.length() > 500)
+                desc = desc.substring(0, 500) + "...";
+            sb.append("\nDescription: ").append(desc);
+        }
         return sb.toString();
     }
 

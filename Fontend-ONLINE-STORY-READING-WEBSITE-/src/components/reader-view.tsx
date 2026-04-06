@@ -16,26 +16,8 @@ import {
   Type,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-export interface Story {
-  id: string
-  title: string
-  author: string
-  cover: string
-  category: string
-  categorySlug: string
-  description: string
-  chapters: number
-  views: number
-  rating: number
-  status: string
-  tags: string[]
-  updatedAt: string
-}
+import type { Story } from "@/lib/data"
 
-export interface ReaderViewProps {
-  story: Story
-  currentChapter: number
-}
 
 
 const sampleContent = [
@@ -96,8 +78,9 @@ export function ReaderView({ story, currentChapter }: ReaderViewProps) {
     <div className="min-h-screen bg-background">
       {/* Top Navigation */}
       <div
-        className={`fixed left-0 right-0 top-0 z-50 border-b border-border bg-card/95 backdrop-blur transition-transform duration-300 ${showNav ? "translate-y-0" : "-translate-y-full"
-          }`}
+        className={`fixed left-0 right-0 top-0 z-50 border-b border-border bg-card/95 backdrop-blur transition-transform duration-300 ${
+          showNav ? "translate-y-0" : "-translate-y-full"
+        }`}
       >
         <div className="mx-auto flex h-14 max-w-4xl items-center justify-between px-4">
           <div className="flex items-center gap-2">
@@ -289,8 +272,9 @@ export function ReaderView({ story, currentChapter }: ReaderViewProps) {
 
       {/* Bottom Navigation (Fixed) */}
       <div
-        className={`fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 backdrop-blur transition-transform duration-300 ${showNav ? "translate-y-0" : "translate-y-full"
-          }`}
+        className={`fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 backdrop-blur transition-transform duration-300 ${
+          showNav ? "translate-y-0" : "translate-y-full"
+        }`}
       >
         <div className="mx-auto flex h-12 max-w-4xl items-center justify-between px-4">
           {hasPrev ? (

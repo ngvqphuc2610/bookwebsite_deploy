@@ -23,16 +23,13 @@ public class SupportController {
     // ── User endpoints ──
 
     @PostMapping("/api/support/conversations")
-    public ResponseEntity<?> openConversation(@RequestBody(required = false) Map<String, Object> body,
-            Authentication authentication) {
-        Long userId = null;
-        if (body != null && body.get("userId") instanceof Number n) {
-            userId = n.longValue();
+    public ResponseEntity<?> openConversation(Authentication authentication) {
+        if (authentication == null) {
+            return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
         }
-        if (userId == null && authentication != null) {
-            String username = authentication.getName();
-            userId = userRepository.findByUsername(username).map(User::getId).orElse(null);
-        }
+        String username = authentication.getName();
+        Long userId = userRepository.findByUsername(username).map(User::getId).orElse(null);
+        
         if (userId == null) {
             return ResponseEntity.badRequest().body(Map.of("message", "Cannot resolve userId"));
         }
@@ -41,7 +38,27 @@ public class SupportController {
     }
 
     @GetMapping("/api/support/conversations/{id}/messages")
-    public ResponseEntity<?> getMessages(@PathVariable Long id) {
+    public ResponseEntity<?> getMessages(@PathVariable Long id, Authentication authentication) {
+        if (authentication == null) {
+            return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
+        }
+
+        // Verify ownership to prevent IDOR
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ADMIN"));
+        
+        if (!isAdmin) {
+            String username = authentication.getName();
+            User user = userRepository.findByUsername(username).orElse(null);
+            if (user == null) return ResponseEntity.status(403).build();
+
+            // Need to verify if this user owns the conversation
+            SupportConversation conv = careService.getConversationById(id);
+            if (conv == null || !conv.getUser().getId().equals(user.getId())) {
+                return ResponseEntity.status(403).body(Map.of("message", "Forbidden: You do not own this conversation"));
+            }
+        }
+
         List<SupportMessage> msgs = careService.getMessages(id);
         return ResponseEntity.ok(msgs.stream().map(this::toMsgMap).collect(Collectors.toList()));
     }
@@ -111,6 +128,15 @@ public class SupportController {
         Long userId = payload.get("userId") instanceof Number n ? n.longValue() : null;
         String content = (String) payload.get("content");
         careService.handleUserMessage(conversationId, userId, content);
+    }
+
+    // ── WebSocket handler: admin replies to user ──
+    @MessageMapping("/admin.support.reply")
+    public void handleAdminReplyMessage(@Payload Map<String, Object> payload) {
+        Long conversationId = ((Number) payload.get("conversationId")).longValue();
+        Long adminId = ((Number) payload.get("adminId")).longValue();
+        String content = (String) payload.get("content");
+        careService.handleAdminReply(conversationId, adminId, content);
     }
 
     // ── DTO helpers ──

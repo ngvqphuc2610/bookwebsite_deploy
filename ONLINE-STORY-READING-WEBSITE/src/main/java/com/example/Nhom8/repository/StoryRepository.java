@@ -43,4 +43,7 @@ public interface StoryRepository extends JpaRepository<Story, Long> {
     @org.springframework.data.jpa.repository.Query("SELECT s FROM Story s LEFT JOIN Rating r ON s.id = r.story.id GROUP BY s.id ORDER BY COALESCE(AVG(r.stars), 0) DESC")
     List<Story> findTopRatedStories(org.springframework.data.domain.Pageable pageable);
 
+    java.util.List<Story> findByTitleContainingIgnoreCaseOrAuthorContainingIgnoreCase(String title, String author);
+
+    java.util.List<Story> findByGenresContaining(Genre genre);
 }

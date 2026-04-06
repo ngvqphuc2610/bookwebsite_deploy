@@ -10,7 +10,6 @@ import java.util.Map;
 
 /**
  * Public API for manga hybrid search and recommendations.
- * Supports optional metadata filters: status, premium, genres.
  */
 @RestController
 @RequestMapping("/api/manga")
@@ -21,26 +20,14 @@ public class MangaSearchController {
 
     /**
      * Hybrid search: MySQL fulltext + Qdrant vector → merge.
-     * Supports optional filters for Qdrant pre-filtering.
-     *
-     * GET /api/manga/search?q=...&limit=10&status=COMPLETED&premium=true&genres=Hành Động,Romance
+     * GET /api/manga/search?q=...&limit=10
      */
     @GetMapping("/search")
     public ResponseEntity<Map<String, Object>> search(
             @RequestParam String q,
-            @RequestParam(defaultValue = "10") int limit,
-            @RequestParam(required = false) String status,
-            @RequestParam(required = false) Boolean premium,
-            @RequestParam(required = false) List<String> genres) {
+            @RequestParam(defaultValue = "10") int limit) {
 
-        List<HybridSearchService.SearchResult> results;
-
-        // Use filtered search if any filter is specified
-        if (status != null || premium != null || (genres != null && !genres.isEmpty())) {
-            results = hybridSearchService.hybridSearch(q, limit, status, premium, genres);
-        } else {
-            results = hybridSearchService.hybridSearch(q, limit);
-        }
+        List<HybridSearchService.SearchResult> results = hybridSearchService.hybridSearch(q, limit);
 
         return ResponseEntity.ok(Map.of(
                 "query", q,

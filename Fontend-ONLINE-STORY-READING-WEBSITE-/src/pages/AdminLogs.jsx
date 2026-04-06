@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { AdminLayout } from '@/components/admin-layout';
-import { API_URL } from '@/services/api';
-import {
-    Activity, Clock, User as UserIcon, Shield,
+import { 
+    Activity, Clock, User as UserIcon, Shield, 
     Trash2, RefreshCcw, Search, Filter,
     FileText, Zap, AlertTriangle
 } from 'lucide-react';
@@ -21,7 +20,7 @@ const AdminLogs = () => {
         try {
             setLoading(true);
             const token = localStorage.getItem('token');
-            const response = await axios.get(`${API_URL}/admin/logs`, {
+            const response = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/admin/logs`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setLogs(response.data);
@@ -36,7 +35,7 @@ const AdminLogs = () => {
         if (!window.confirm("Bạn có chắc muốn xóa sạch lịch sử hoạt động? Hành động này không thể hoàn tác!")) return;
         try {
             const token = localStorage.getItem('token');
-            await axios.delete(`${API_URL}/admin/logs/clear`, {
+            await axios.delete(`${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/admin/logs/clear`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             fetchLogs();
@@ -49,7 +48,7 @@ const AdminLogs = () => {
         fetchLogs();
     }, []);
 
-    const filteredLogs = logs.filter(log =>
+    const filteredLogs = logs.filter(log => 
         log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
         log.details.toLowerCase().includes(searchTerm.toLowerCase()) ||
         log.user?.username.toLowerCase().includes(searchTerm.toLowerCase())
@@ -76,14 +75,14 @@ const AdminLogs = () => {
                         <p className="text-slate-500 font-medium">Theo dõi các thay đổi và tác vụ quản trị theo thời gian thực.</p>
                     </div>
                     <div className="flex gap-3">
-                        <Button
-                            variant="outline"
+                        <Button 
+                            variant="outline" 
                             className="rounded-xl border-slate-200 bg-white font-bold"
                             onClick={fetchLogs}
                         >
                             <RefreshCcw className="w-4 h-4 mr-2" /> Làm mới
                         </Button>
-                        <Button
+                        <Button 
                             variant="destructive"
                             className="rounded-xl shadow-lg shadow-rose-100 font-bold"
                             onClick={clearLogs}
@@ -97,8 +96,8 @@ const AdminLogs = () => {
                 <div className="flex gap-4">
                     <div className="relative flex-1 max-w-md">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                        <Input
-                            placeholder="Tìm kiếm hành động, nội dung..."
+                        <Input 
+                            placeholder="Tìm kiếm hành động, nội dung..." 
                             className="pl-10 h-12 rounded-2xl border-slate-100 bg-white"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -156,9 +155,9 @@ const AdminLogs = () => {
                         ))
                     ) : (
                         <div className="py-20 text-center bg-slate-50 rounded-[3rem] border-2 border-dashed border-slate-200">
-                            <FileText size={48} className="mx-auto text-slate-200 mb-4" />
-                            <h3 className="text-lg font-bold text-slate-400 uppercase tracking-widest">Nhật ký trống</h3>
-                            <p className="text-slate-400 font-medium">Chưa có hoạt động nào được ghi nhận trong thời gian này.</p>
+                             <FileText size={48} className="mx-auto text-slate-200 mb-4" />
+                             <h3 className="text-lg font-bold text-slate-400 uppercase tracking-widest">Nhật ký trống</h3>
+                             <p className="text-slate-400 font-medium">Chưa có hoạt động nào được ghi nhận trong thời gian này.</p>
                         </div>
                     )}
                 </div>

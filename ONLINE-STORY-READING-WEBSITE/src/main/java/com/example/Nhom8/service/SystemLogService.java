@@ -16,8 +16,11 @@ public class SystemLogService {
     private final UserRepository userRepository;
 
     public void log(String action, String details) {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByUsername(username).orElse(null);
+        org.springframework.security.core.Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User user = null;
+        if (auth != null && auth.isAuthenticated()) {
+            user = userRepository.findByUsername(auth.getName()).orElse(null);
+        }
 
         SystemLog log = SystemLog.builder()
                 .action(action)

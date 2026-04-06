@@ -13,10 +13,15 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@org.hibernate.annotations.SQLDelete(sql = "UPDATE users SET deleted = true WHERE id=?")
+@org.hibernate.annotations.Where(clause = "deleted=false")
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Builder.Default
+    private boolean deleted = false;
 
     @Column(unique = true, nullable = false)
     private String username;
@@ -52,9 +57,14 @@ public class User {
     private boolean enabled = true;
 
     private LocalDateTime createdAt;
-    
+
     private String resetPasswordToken;
     private LocalDateTime tokenExpiration;
+
+    @Builder.Default
+    private int failedOtpAttempts = 0;
+
+    private LocalDateTime otpLockoutUntil;
 
     @PrePersist
     protected void onCreate() {

@@ -16,6 +16,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class GenreController {
     private final GenreRepository genreRepository;
+    private final com.example.Nhom8.repository.StoryRepository storyRepository;
     private final SystemLogService systemLogService;
 
     @GetMapping
@@ -61,12 +62,20 @@ public class GenreController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @org.springframework.transaction.annotation.Transactional
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteGenre(@PathVariable Long id) {
         Genre genre = genreRepository.findById(id).orElse(null);
-        String name = (genre != null) ? genre.getName() : id.toString();
-        if (genreRepository.existsById(id)) {
-            genreRepository.deleteById(id);
+        if (genre != null) {
+            String name = genre.getName();
+            // Remove associations from all stories first
+            List<com.example.Nhom8.models.Story> storiesWithGenre = storyRepository.findByGenresContaining(genre);
+            for (com.example.Nhom8.models.Story story : storiesWithGenre) {
+                story.getGenres().remove(genre);
+                storyRepository.save(story);
+            }
+
+            genreRepository.delete(genre);
             systemLogService.log("DELETE_GENRE", "Đã xóa thể loại: " + name);
             return ResponseEntity.noContent().build();
         }

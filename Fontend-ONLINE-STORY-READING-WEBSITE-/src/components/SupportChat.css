@@ -152,7 +152,13 @@
     font-size: 13px;
 }
 
-.support-chat__msg--bot .support-chat__msg-bubble {
+.support-chat__msg--admin .support-chat__msg-avatar {
+    background: rgba(245, 158, 11, 0.15); /* Orange or distinct color */
+    color: #f59e0b;
+}
+
+.support-chat__msg--bot .support-chat__msg-bubble,
+.support-chat__msg--admin .support-chat__msg-bubble {
     color: var(--text);
     border: 1px solid var(--border);
     background: rgba(255, 255, 255, 0.04);

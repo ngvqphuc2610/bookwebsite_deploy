@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { AdminLayout } from '@/components/admin-layout';
-import { API_URL } from '@/services/api';
 import {
     TrendingUp, Users, CreditCard, DollarSign,
     ArrowUpRight, ArrowDownRight, Clock,
@@ -29,7 +28,7 @@ const AdminAnalytics = () => {
         try {
             setRefreshing(true);
             const token = localStorage.getItem('token');
-            const response = await axios.get(`${API_URL}/admin/analytics?period=${targetPeriod}`, {
+            const response = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/admin/analytics?period=${targetPeriod}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setData(response.data);
@@ -52,7 +51,7 @@ const AdminAnalytics = () => {
     const fetchAllTransactions = async () => {
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get(`${API_URL}/admin/transactions`, {
+            const response = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/admin/transactions`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setAllTransactions(response.data);
@@ -63,11 +62,11 @@ const AdminAnalytics = () => {
 
     const handleDeleteTransaction = async (id) => {
         if (!window.confirm('Bạn có chắc chắn muốn xóa giao dịch này? Hành động này không thể hoàn tác.')) return;
-
+        
         try {
             setIsDeleting(id);
             const token = localStorage.getItem('token');
-            await axios.delete(`${API_URL}/admin/transactions/${id}`, {
+            await axios.delete(`${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/admin/transactions/${id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             fetchAnalytics();
@@ -82,7 +81,7 @@ const AdminAnalytics = () => {
     const handleExportExcel = async () => {
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get(`${API_URL}/admin/export-revenue`, {
+            const response = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/admin/export-revenue`, {
                 headers: { Authorization: `Bearer ${token}` },
                 responseType: 'blob' // Important for file download
             });
@@ -183,7 +182,7 @@ const AdminAnalytics = () => {
                             <RefreshCcw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
                             Làm mới
                         </Button>
-                        <Button
+                        <Button 
                             className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg shadow-indigo-100 font-bold"
                             onClick={handleExportExcel}
                         >
@@ -224,25 +223,25 @@ const AdminAnalytics = () => {
                                 <CardDescription className="text-xs font-bold text-slate-400">Tỷ lệ đóng góp của các cổng thanh toán</CardDescription>
                             </div>
                             <div className="bg-slate-50 p-1 rounded-xl flex gap-1">
-                                <Button
-                                    size="sm"
-                                    variant="ghost"
+                                <Button 
+                                    size="sm" 
+                                    variant="ghost" 
                                     className={`h-7 text-[10px] font-bold px-3 rounded-lg transition-all ${period === 'month' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-400'}`}
                                     onClick={() => handlePeriodChange('month')}
                                 >
                                     Tháng này
                                 </Button>
-                                <Button
-                                    size="sm"
-                                    variant="ghost"
+                                <Button 
+                                    size="sm" 
+                                    variant="ghost" 
                                     className={`h-7 text-[10px] font-bold px-3 rounded-lg transition-all ${period === 'quarter' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-400'}`}
                                     onClick={() => handlePeriodChange('quarter')}
                                 >
                                     Quý trước
                                 </Button>
-                                <Button
-                                    size="sm"
-                                    variant="ghost"
+                                <Button 
+                                    size="sm" 
+                                    variant="ghost" 
                                     className={`h-7 text-[10px] font-bold px-3 rounded-lg transition-all ${period === 'all' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-400'}`}
                                     onClick={() => handlePeriodChange('all')}
                                 >
@@ -326,8 +325,8 @@ const AdminAnalytics = () => {
                             <CardTitle className="text-2xl font-black text-slate-800">Giao dịch gần đây</CardTitle>
                             <CardDescription className="text-slate-400 font-bold text-[11px] uppercase tracking-widest mt-1">Lịch sử 10 giao dịch mới nhất</CardDescription>
                         </div>
-                        <Button
-                            variant="ghost"
+                        <Button 
+                            variant="ghost" 
                             className="text-indigo-600 font-bold hover:bg-indigo-50 rounded-xl"
                             onClick={() => {
                                 fetchAllTransactions();
@@ -431,15 +430,15 @@ const AdminAnalytics = () => {
                 <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in transition-all">
                     <div className="w-full max-w-6xl bg-white rounded-[3rem] shadow-[0_35px_60px_-15px_rgba(0,0,0,0.3)] h-[90vh] flex flex-col animate-in zoom-in-95 duration-500 relative overflow-hidden">
                         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 to-purple-500" />
-
+                        
                         <div className="px-10 pt-10 pb-6 flex items-center justify-between shrink-0">
                             <div>
                                 <h3 className="text-3xl font-black text-slate-900 tracking-tight leading-none">Toàn bộ giao dịch</h3>
                                 <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mt-2 px-1">Danh sách đầy đủ từ trước đến nay</p>
                             </div>
-                            <Button
-                                variant="ghost"
-                                size="icon"
+                            <Button 
+                                variant="ghost" 
+                                size="icon" 
                                 onClick={() => setShowAllModal(false)}
                                 className="rounded-2xl h-14 w-14 bg-slate-50 text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors"
                             >

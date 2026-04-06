@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { Eye, Star, Trophy } from "lucide-react"
-import { storyService, getServerUrl } from "@/services/api"
+import { storyService } from "@/services/api"
 import { formatViews } from "@/lib/data"
 
 const tabs = [
@@ -41,7 +41,7 @@ export function RankingSection() {
   const getAvatarUrl = (url: string) => {
     if (!url) return 'https://via.placeholder.com/150'
     if (url.startsWith('http')) return url
-    return getServerUrl(url)
+    return `http://localhost:8080${url}`
   }
 
   return (
@@ -61,8 +61,8 @@ export function RankingSection() {
               key={tab.value}
               onClick={() => setActiveTab(tab.value)}
               className={`rounded-md px-4 py-2 text-sm font-medium transition-all ${activeTab === tab.value
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
                 }`}
             >
               {tab.label}
@@ -85,12 +85,12 @@ export function RankingSection() {
               {/* Rank Number */}
               <div
                 className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-sm font-bold ${index === 0
-                  ? "bg-accent text-accent-foreground"
-                  : index === 1
-                    ? "bg-muted-foreground/20 text-foreground"
-                    : index === 2
-                      ? "bg-primary/20 text-primary"
-                      : "bg-secondary text-muted-foreground"
+                    ? "bg-accent text-accent-foreground"
+                    : index === 1
+                      ? "bg-muted-foreground/20 text-foreground"
+                      : index === 2
+                        ? "bg-primary/20 text-primary"
+                        : "bg-secondary text-muted-foreground"
                   }`}
               >
                 {index + 1}

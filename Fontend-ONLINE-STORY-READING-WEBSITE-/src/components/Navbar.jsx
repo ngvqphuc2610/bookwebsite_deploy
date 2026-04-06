@@ -21,8 +21,6 @@ const Navbar = () => {
     };
 
     const getAvatarUrl = (url) => {
-        if (!url) return 'https://via.placeholder.com/40';
-        if (url.startsWith('http')) return url;
         return getServerUrl(url);
     };
 
@@ -31,7 +29,7 @@ const Navbar = () => {
             <div className="container nav-content">
                 <Link to="/" className="logo">
                     <BookOpen size={32} className="logo-icon" />
-                    <span>Nhom8 Story</span>
+                    <span>AlexStore</span>
                 </Link>
 
                 <div className="nav-search">

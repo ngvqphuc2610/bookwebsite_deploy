@@ -1,12 +1,13 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Users, ShieldCheck, ChevronRight, Activity, Database, Settings2, BarChart3, Bell } from 'lucide-react';
+import { Users, ShieldCheck, ChevronRight, Activity, Database, Settings2, BarChart3, Bell, Headphones } from 'lucide-react';
 
 export function AdminSideNav() {
     const location = useLocation();
 
     const adminLinks = [
         { to: "/admin", label: "Người dùng", icon: Users, desc: "Phân quyền & bảo mật" },
+        { to: "/admin/support", label: "Chăm sóc KH", icon: Headphones, desc: "Trực CSKH & Trả lời" },
         { to: "/admin/analytics", label: "Thống kê", icon: BarChart3, desc: "Số liệu hệ thống" },
         { to: "/admin/logs", label: "Nhật ký hệ thống", icon: Activity, desc: "Lịch sử hoạt động" },
         { to: "/admin/settings", label: "Cài đặt chung", icon: Settings2, desc: "Cấu hình toàn cục" },

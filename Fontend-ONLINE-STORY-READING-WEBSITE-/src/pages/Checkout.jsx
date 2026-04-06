@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { API_URL, premiumPackageService } from '@/services/api';
+import { premiumPackageService } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -51,7 +51,7 @@ const Checkout = () => {
             setProcessing(true);
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch(`${API_URL}/payment/create-vnpay-url?packageId=${packageId}`, {
+                const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/payment/create-vnpay-url?packageId=${packageId}`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`
@@ -72,8 +72,33 @@ const Checkout = () => {
             return;
         }
 
+        if (selectedMethod === 'momo') {
+            setProcessing(true);
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/payment/create-momo-url?packageId=${packageId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const data = await response.json();
+                if (data.payUrl) {
+                    window.location.href = data.payUrl;
+                } else {
+                    toast.error(data.message || "Không thể tạo link thanh toán MoMo");
+                    setProcessing(false);
+                }
+            } catch (error) {
+                console.error("Momo Payment error:", error);
+                toast.error("Lỗi kết nối đến máy chủ MoMo");
+                setProcessing(false);
+            }
+            return;
+        }
+
         setProcessing(true);
-        // Simulate other payment methods (Momo, etc.)
+        // Simulate other payment methods (ZaloPay, ATM, etc.)
         setTimeout(() => {
             setProcessing(false);
             toast.success(`Thanh toán qua ${selectedMethod.toUpperCase()} thành công!`);
@@ -143,22 +168,6 @@ const Checkout = () => {
                                     icon={<CreditCard className="text-blue-600" />}
                                     selected={selectedMethod === 'vnpay'}
                                     onClick={() => setSelectedMethod('vnpay')}
-                                />
-                                <PaymentMethodCard
-                                    id="zalopay"
-                                    title="ZaloPay"
-                                    description="Thanh toán qua ZaloPay"
-                                    icon={<Wallet className="text-[#008fe5]" />}
-                                    selected={selectedMethod === 'zalopay'}
-                                    onClick={() => setSelectedMethod('zalopay')}
-                                />
-                                <PaymentMethodCard
-                                    id="atm"
-                                    title="Thẻ ATM / Internet Banking"
-                                    description="Hỗ trợ hơn 40 ngân hàng nội địa"
-                                    icon={<ShieldCheck className="text-slate-600" />}
-                                    selected={selectedMethod === 'atm'}
-                                    onClick={() => setSelectedMethod('atm')}
                                 />
                             </div>
                         </section>

@@ -5,7 +5,7 @@ import { Heart, BookOpen, Trash2, Loader2, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { API_URL, getServerUrl } from '@/services/api';
+import { getServerUrl } from '@/services/api';
 
 const Favorites = () => {
     const [favorites, setFavorites] = useState([]);
@@ -15,7 +15,7 @@ const Favorites = () => {
         try {
             setLoading(true);
             const token = localStorage.getItem('token');
-            const response = await axios.get(`${API_URL}/favorites`, {
+            const response = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/favorites`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setFavorites(response.data.content || []);
@@ -29,7 +29,7 @@ const Favorites = () => {
     const toggleFavorite = async (storyId) => {
         try {
             const token = localStorage.getItem('token');
-            await axios.post(`${API_URL}/favorites/toggle/${storyId}`, {}, {
+            await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/favorites/toggle/${storyId}`, {}, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             // Update local state by removing the story
@@ -99,14 +99,14 @@ const Favorites = () => {
                                             </div>
 
                                             <div className="flex items-center gap-2">
-                                                <Button
-                                                    variant="secondary"
+                                                <Button 
+                                                    variant="secondary" 
                                                     className="rounded-2xl h-10 px-4 bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-500 transition-colors"
                                                     onClick={() => toggleFavorite(story.id)}
                                                 >
                                                     <Trash2 size={16} />
                                                 </Button>
-                                                <Button
+                                                <Button 
                                                     className="flex-1 rounded-2xl h-10 bg-indigo-600 hover:bg-indigo-700 text-white font-bold group/btn"
                                                     asChild
                                                 >
@@ -123,11 +123,11 @@ const Favorites = () => {
                     </div>
                 ) : (
                     <div className="py-24 text-center bg-white rounded-[3rem] border-2 border-dashed border-slate-200">
-                        <h3 className="text-xl font-black text-slate-900 mb-2 uppercase tracking-tight">Danh sách trống</h3>
-                        <p className="text-slate-500 font-medium mb-8 max-w-sm mx-auto">Bạn chưa yêu thích bộ truyện nào. Hãy khám phá và lưu lại những bộ truyện hay nhé!</p>
-                        <Button asChild className="rounded-full px-8 bg-indigo-600 hover:bg-indigo-700 h-12 font-bold shadow-lg shadow-indigo-100">
+                         <h3 className="text-xl font-black text-slate-900 mb-2 uppercase tracking-tight">Danh sách trống</h3>
+                         <p className="text-slate-500 font-medium mb-8 max-w-sm mx-auto">Bạn chưa yêu thích bộ truyện nào. Hãy khám phá và lưu lại những bộ truyện hay nhé!</p>
+                         <Button asChild className="rounded-full px-8 bg-indigo-600 hover:bg-indigo-700 h-12 font-bold shadow-lg shadow-indigo-100">
                             <Link to="/">Khám phá ngay</Link>
-                        </Button>
+                         </Button>
                     </div>
                 )}
             </div>

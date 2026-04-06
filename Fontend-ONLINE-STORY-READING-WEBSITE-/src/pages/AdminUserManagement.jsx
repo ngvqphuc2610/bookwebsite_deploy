@@ -155,8 +155,6 @@ const AdminUserManagement = () => {
     };
 
     const getAvatarUrl = (url) => {
-        if (!url) return null;
-        if (url.startsWith('http')) return url;
         return getServerUrl(url);
     };
 
@@ -428,15 +426,15 @@ const AdminUserManagement = () => {
                                         <div
                                             key={role.id}
                                             className={`flex items-center gap-4 p-4 rounded-2xl border-2 transition-all cursor-pointer select-none ${formData.roleIds.includes(role.id)
-                                                ? 'bg-indigo-50 border-indigo-200 shadow-md shadow-indigo-500/5'
-                                                : 'bg-slate-50 border-transparent hover:bg-slate-100'
+                                                    ? 'bg-indigo-50 border-indigo-200 shadow-md shadow-indigo-500/5'
+                                                    : 'bg-slate-50 border-transparent hover:bg-slate-100'
                                                 }`}
                                             onClick={() => handleRoleChange(role.id)}
                                         >
                                             <div
                                                 className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${formData.roleIds.includes(role.id)
-                                                    ? 'bg-indigo-600 text-white scale-110 shadow-lg shadow-indigo-200'
-                                                    : 'bg-slate-200 text-slate-400'
+                                                        ? 'bg-indigo-600 text-white scale-110 shadow-lg shadow-indigo-200'
+                                                        : 'bg-slate-200 text-slate-400'
                                                     }`}
                                             >
                                                 {role.name === 'ADMIN' ? <ShieldCheck size={20} /> : <UserIcon size={20} />}

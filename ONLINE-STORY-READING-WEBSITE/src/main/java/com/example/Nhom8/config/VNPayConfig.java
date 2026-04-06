@@ -10,46 +10,50 @@ import java.util.*;
 @Configuration
 public class VNPayConfig {
 
-    @Value("${VNPAY_TMN_CODE:9HZKBNNN}")
+    @Value("${vnpay.tmn-code}")
     public String tmnCode;
 
-    @Value("${VNPAY_HASH_SECRET:8HGHV2MT8QI5NLICKG28HOBLJ0AATIE6}")
+    @Value("${vnpay.hash-secret}")
     public String hashSecret;
 
-    @Value("${VNPAY_BASE_URL:https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}")
+    @Value("${vnpay.base-url}")
     public String vnpPayUrl;
 
-    @Value("${VNPAY_VERSION:2.1.0}")
+    @Value("${vnpay.version}")
     public String version;
 
-    @Value("${VNPAY_COMMAND:pay}")
+    @Value("${vnpay.command}")
     public String command;
 
-    @Value("${VNPAY_CURR_CODE:VND}")
+    @Value("${vnpay.curr-code}")
     public String currCode;
 
-    @Value("${VNPAY_LOCALE:vn}")
+    @Value("${vnpay.locale}")
     public String locale;
 
-    @Value("${VNPAY_RETURN_URL:https://alexdev.software/api/payment/vnpay-callback}")
+    @Value("${vnpay.return-url}")
     public String returnUrl;
 
     public String hashAllFields(Map<String, String> fields) {
         List<String> fieldNames = new ArrayList<>(fields.keySet());
         Collections.sort(fieldNames);
         StringBuilder sb = new StringBuilder();
-        Iterator<String> itr = fieldNames.iterator();
-        while (itr.hasNext()) {
-            String fieldName = itr.next();
-            String fieldValue = fields.get(fieldName);
-            if ((fieldValue != null) && (fieldValue.length() > 0)) {
-                sb.append(fieldName);
-                sb.append("=");
-                sb.append(fieldValue);
+        try {
+            boolean first = true;
+            for (String fieldName : fieldNames) {
+                String fieldValue = fields.get(fieldName);
+                if ((fieldValue != null) && (fieldValue.length() > 0)) {
+                    if (!first) {
+                        sb.append("&");
+                    }
+                    sb.append(fieldName);
+                    sb.append("=");
+                    sb.append(java.net.URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII.toString()));
+                    first = false;
+                }
             }
-            if (itr.hasNext()) {
-                sb.append("&");
-            }
+        } catch (java.io.UnsupportedEncodingException e) {
+            return "";
         }
         return hmacSHA512(hashSecret, sb.toString());
     }

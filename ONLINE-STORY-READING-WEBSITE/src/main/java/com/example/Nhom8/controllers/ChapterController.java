@@ -14,7 +14,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
-
 @RestController
 @RequestMapping("/api/chapters")
 @RequiredArgsConstructor
@@ -26,11 +25,6 @@ public class ChapterController {
     private boolean isUserPremium(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) return false;
         
-        // Admin and Staff can read everything
-        if (authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ADMIN") || a.getAuthority().equals("STAFF"))) {
-            return true;
-        }
-
         return userRepository.findByUsername(authentication.getName())
                 .map(user -> user.isPremium() && user.getPremiumExpiry() != null && user.getPremiumExpiry().isAfter(LocalDateTime.now()))
                 .orElse(false);
@@ -73,6 +67,7 @@ public class ChapterController {
     }
 
     @PostMapping
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyAuthority('ADMIN', 'STAFF')")
     public ResponseEntity<ChapterDTO> createChapter(@RequestBody Chapter chapter) {
         Chapter createdChapter = chapterService.createChapter(chapter);
         systemLogService.log("CREATE_CHAPTER", "Đã thêm chương: " + createdChapter.getTitle() + " cho truyện IDs: " + createdChapter.getStory().getId());
@@ -80,6 +75,7 @@ public class ChapterController {
     }
 
     @PutMapping("/{id}")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyAuthority('ADMIN', 'STAFF')")
     public ResponseEntity<ChapterDTO> updateChapter(@PathVariable Long id, @RequestBody Chapter chapterDetails) {
         Chapter updatedChapter = chapterService.updateChapter(id, chapterDetails);
         systemLogService.log("UPDATE_CHAPTER", "Đã cập nhật chương: " + updatedChapter.getTitle());
@@ -87,6 +83,7 @@ public class ChapterController {
     }
 
     @DeleteMapping("/{id}")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyAuthority('ADMIN', 'STAFF')")
     public ResponseEntity<Void> deleteChapter(@PathVariable Long id) {
         Chapter chapter = chapterService.getChapterById(id);
         String name = (chapter != null) ? chapter.getTitle() : id.toString();

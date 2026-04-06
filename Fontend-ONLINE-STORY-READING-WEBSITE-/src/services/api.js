@@ -1,12 +1,16 @@
 import axios from 'axios';
 
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
-export const SERVER_URL = API_URL.replace(/\/api\/?$/, '');
-export const WS_URL = import.meta.env.VITE_WS_URL || `${SERVER_URL}/ws`;
+export const getWsUrl = () => {
+    return import.meta.env.VITE_WS_URL || 'http://localhost:8080/ws';
+};
+
 export const getServerUrl = (path) => {
     if (!path) return 'https://github.com/shadcn.png';
     if (path.startsWith('http')) return path;
-    return `${SERVER_URL}${path}`;
+    const baseUrl = API_URL.replace('/api', '').replace(/\/$/, "");
+    const formattedPath = path.startsWith('/') ? path : `/${path}`;
+    return `${baseUrl}${formattedPath}`;
 };
 
 const api = axios.create({
@@ -115,18 +119,12 @@ export const userService = {
 
 export const chatbotService = {
     ask: (message, history = []) => api.post('/chatbot/ask', { message, history }),
+    getHistory: () => api.get('/chatbot/history'),
+    clearHistory: () => api.delete('/chatbot/history'),
 };
 
 export const mangaSearchService = {
-    search: (query, limit = 10, filters = {}) => {
-        let url = `/manga/search?q=${encodeURIComponent(query)}&limit=${limit}`;
-        if (filters.status) url += `&status=${filters.status}`;
-        if (filters.premium !== undefined) url += `&premium=${filters.premium}`;
-        if (filters.genres && filters.genres.length > 0) {
-            url += `&genres=${filters.genres.join(',')}`;
-        }
-        return api.get(url);
-    },
+    search: (query, limit = 10) => api.get(`/manga/search?q=${encodeURIComponent(query)}&limit=${limit}`),
     recommend: (storyId, limit = 10) => api.get(`/manga/${storyId}/recommend?limit=${limit}`),
 };
 

@@ -14,7 +14,7 @@ export function SiteFooter() {
                 <BookOpen className="h-5 w-5 text-primary-foreground" />
               </div>
               <span className="font-serif text-xl font-bold text-foreground">
-                TruyenHay
+                AlexStore
               </span>
             </Link>
             <p className="text-sm leading-relaxed text-muted-foreground">
@@ -109,7 +109,7 @@ export function SiteFooter() {
 
         <div className="mt-10 border-t border-border pt-6">
           <p className="text-center text-xs text-muted-foreground">
-            &copy; 2026 TruyenHay. Moi quyen duoc bao luu.
+            &copy; 2026 AlexStore. Moi quyen duoc bao luu.
           </p>
         </div>
       </div>

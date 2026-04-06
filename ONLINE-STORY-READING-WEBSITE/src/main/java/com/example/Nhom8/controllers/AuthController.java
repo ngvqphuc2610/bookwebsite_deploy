@@ -15,6 +15,8 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import com.example.Nhom8.repository.UserRepository;
+import com.example.Nhom8.repository.RoleRepository;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -24,8 +26,8 @@ public class AuthController {
 
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider tokenProvider;
-    private final com.example.Nhom8.repository.UserRepository userRepository;
-    private final com.example.Nhom8.repository.RoleRepository roleRepository;
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
     private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
     private final EmailService emailService;
 
@@ -40,17 +42,18 @@ public class AuthController {
             SecurityContextHolder.getContext().setAuthentication(authentication);
             String jwt = tokenProvider.generateToken(authentication);
 
+            // Fetch user by username OR email (Supports Google users who set a password)
             com.example.Nhom8.models.User user = userRepository.findByUsername(loginRequest.getUsername())
+                    .or(() -> userRepository.findByEmail(loginRequest.getUsername()))
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
             java.util.List<String> roles = user.getRoles().stream()
                     .map(com.example.Nhom8.models.Role::getName)
                     .collect(java.util.stream.Collectors.toList());
 
+            return ResponseEntity
+                    .ok(new JwtAuthenticationResponse(jwt, user.getId(), user.getUsername(), user.getAvatar(), roles));
 
-        return ResponseEntity
-                .ok(new JwtAuthenticationResponse(jwt, user.getId(), user.getUsername(), user.getAvatar(), roles));
-            
         } catch (org.springframework.security.authentication.DisabledException e) {
             return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN)
                     .body("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.");
@@ -58,7 +61,6 @@ public class AuthController {
             return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED)
                     .body("Tên đăng nhập hoặc mật khẩu không chính xác.");
         }
-
     }
 
     @PostMapping("/register")
@@ -118,9 +120,16 @@ public class AuthController {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("Email không tồn tại trong hệ thống."));
 
+        if (user.getOtpLockoutUntil() != null && user.getOtpLockoutUntil().isAfter(LocalDateTime.now())) {
+            java.time.Duration remains = java.time.Duration.between(LocalDateTime.now(), user.getOtpLockoutUntil());
+            return ResponseEntity.status(429).body("Tài khoản đang bị khóa yêu cầu OTP. Vui lòng quay lại sau " + (remains.toMinutes() + 1) + " phút.");
+        }
+
         String otp = String.format("%06d", new Random().nextInt(1000000));
         user.setResetPasswordToken(otp);
         user.setTokenExpiration(LocalDateTime.now().plusMinutes(5));
+        user.setFailedOtpAttempts(0); 
+        
         userRepository.save(user);
 
         emailService.sendEmail(user.getEmail(), "Mã xác nhận quên mật khẩu", "Mã OTP của bạn là: " + otp + ". Mã có hiệu lực trong 5 phút.");
@@ -133,17 +142,40 @@ public class AuthController {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("Người dùng không tồn tại."));
 
-        if (user.getResetPasswordToken() == null || !user.getResetPasswordToken().equals(request.getOtp())) {
-            return ResponseEntity.badRequest().body("Mã xác nhận không chính xác.");
+        if (user.getOtpLockoutUntil() != null && user.getOtpLockoutUntil().isAfter(LocalDateTime.now())) {
+            java.time.Duration duration = java.time.Duration.between(LocalDateTime.now(), user.getOtpLockoutUntil());
+            long minutes = duration.toMinutes() + 1;
+            return ResponseEntity.status(429).body("Bạn đã nhập sai quá nhiều lần. Vui lòng quay lại sau " + minutes + " phút.");
+        }
+
+        if (user.getResetPasswordToken() == null) {
+            return ResponseEntity.badRequest().body("Yêu cầu không hợp lệ. Vui lòng yêu cầu mã OTP mới.");
         }
 
         if (user.getTokenExpiration().isBefore(LocalDateTime.now())) {
-            return ResponseEntity.badRequest().body("Mã xác nhận đã hết hạn.");
+            return ResponseEntity.badRequest().body("Mã xác nhận đã hết hạn. Vui lòng yêu cầu mã mới.");
+        }
+
+        if (!user.getResetPasswordToken().equals(request.getOtp())) {
+            int attempts = user.getFailedOtpAttempts() + 1;
+            user.setFailedOtpAttempts(attempts);
+            
+            if (attempts >= 3) {
+                user.setOtpLockoutUntil(LocalDateTime.now().plusMinutes(30));
+                userRepository.save(user);
+                return ResponseEntity.status(429).body("Bạn đã nhập sai mã 3 lần. Tài khoản bị khóa đổi mật khẩu trong 30 phút.");
+            }
+            
+            userRepository.save(user);
+            int remains = 3 - attempts;
+            return ResponseEntity.badRequest().body("Mã xác nhận không chính xác. Bạn còn " + remains + " lần thử.");
         }
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         user.setResetPasswordToken(null);
         user.setTokenExpiration(null);
+        user.setFailedOtpAttempts(0);
+        user.setOtpLockoutUntil(null);
         userRepository.save(user);
 
         return ResponseEntity.ok("Mật khẩu đã được thay đổi thành công.");

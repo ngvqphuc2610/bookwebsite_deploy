@@ -22,15 +22,13 @@ class CustomerCareServiceTest {
     private final FaqItemRepository faqItemRepo = mock(FaqItemRepository.class);
     private final UserRepository userRepo = mock(UserRepository.class);
     private final SimpMessagingTemplate messagingTemplate = mock(SimpMessagingTemplate.class);
-    private final FaqIndexService faqIndexService = mock(FaqIndexService.class);
 
     private final CustomerCareService service = new CustomerCareService(
             conversationRepo,
             messageRepo,
             faqItemRepo,
             userRepo,
-            messagingTemplate,
-            faqIndexService);
+            messagingTemplate);
 
     @Test
     void matchFaq_supportsVietnameseAndAliasPatterns() {

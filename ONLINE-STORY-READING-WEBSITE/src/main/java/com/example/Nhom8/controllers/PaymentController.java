@@ -1,30 +1,41 @@
 package com.example.Nhom8.controllers;
 
 import com.example.Nhom8.config.VNPayConfig;
+import com.example.Nhom8.config.MomoConfig;
 import com.example.Nhom8.models.PremiumPackage;
 import com.example.Nhom8.models.Transaction;
 import com.example.Nhom8.models.User;
 import com.example.Nhom8.repository.PremiumPackageRepository;
 import com.example.Nhom8.repository.TransactionRepository;
 import com.example.Nhom8.repository.UserRepository;
+import com.example.Nhom8.service.EmailService;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.client.RestTemplate;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @RestController
 @RequestMapping("/api/payment")
+@Slf4j
 public class PaymentController {
 
     @Autowired
     private VNPayConfig vnPayConfig;
+
+    @Autowired
+    private MomoConfig momoConfig;
 
     @Autowired
     private TransactionRepository transactionRepository;
@@ -34,6 +45,12 @@ public class PaymentController {
 
     @Autowired
     private PremiumPackageRepository premiumPackageRepository;
+
+    @Autowired
+    private EmailService emailService;
+
+    @Value("${app.frontend-url}")
+    private String frontendUrl;
 
     @PostMapping("/create-vnpay-url")
     public ResponseEntity<?> createVNPayUrl(@RequestParam Long packageId, HttpServletRequest request) throws Exception {
@@ -73,20 +90,18 @@ public class PaymentController {
         String vnp_ExpireDate = formatter.format(cld.getTime());
         vnp_Params.put("vnp_ExpireDate", vnp_ExpireDate);
 
-        List fieldNames = new ArrayList(vnp_Params.keySet());
+        List<String> fieldNames = new ArrayList<>(vnp_Params.keySet());
         Collections.sort(fieldNames);
         StringBuilder hashData = new StringBuilder();
         StringBuilder query = new StringBuilder();
-        Iterator itr = fieldNames.iterator();
+        Iterator<String> itr = fieldNames.iterator();
         while (itr.hasNext()) {
-            String fieldName = (String) itr.next();
-            String fieldValue = (String) vnp_Params.get(fieldName);
+            String fieldName = itr.next();
+            String fieldValue = vnp_Params.get(fieldName);
             if ((fieldValue != null) && (fieldValue.length() > 0)) {
-                // Build hash data
                 hashData.append(fieldName);
                 hashData.append('=');
                 hashData.append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII.toString()));
-                // Build query
                 query.append(URLEncoder.encode(fieldName, StandardCharsets.US_ASCII.toString()));
                 query.append('=');
                 query.append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII.toString()));
@@ -101,7 +116,6 @@ public class PaymentController {
         queryUrl += "&vnp_SecureHash=" + vnp_SecureHash;
         String paymentUrl = vnPayConfig.vnpPayUrl + "?" + queryUrl;
 
-        // Save pending transaction
         Transaction transaction = Transaction.builder()
                 .transactionId(vnp_TxnRef)
                 .user(user)
@@ -118,13 +132,18 @@ public class PaymentController {
     }
 
     @GetMapping("/vnpay-callback")
+    @Transactional
     public ResponseEntity<?> vnpayCallback(@RequestParam Map<String, String> queryParams) {
-        // Verification logic would go here in a production app
-        if (queryParams.containsKey("vnp_SecureHashType")) {
-            queryParams.remove("vnp_SecureHashType");
-        }
-        if (queryParams.containsKey("vnp_SecureHash")) {
-            queryParams.remove("vnp_SecureHash");
+        log.info("VNPay callback received: {}", queryParams);
+        String vnp_SecureHash = queryParams.get("vnp_SecureHash");
+        Map<String, String> verifyParams = new HashMap<>(queryParams);
+        verifyParams.remove("vnp_SecureHash");
+        verifyParams.remove("vnp_SecureHashType");
+
+        String calculatedHash = vnPayConfig.hashAllFields(verifyParams);
+        if (!calculatedHash.equals(vnp_SecureHash)) {
+            log.error("VNPay signature verification failed");
+            return ResponseEntity.status(403).body("Invalid signature");
         }
 
         String responseCode = queryParams.get("vnp_ResponseCode");
@@ -135,30 +154,134 @@ public class PaymentController {
 
         if ("00".equals(responseCode)) {
             transaction.setStatus(Transaction.TransactionStatus.SUCCESS);
-
-            // Update user premium status
             User user = transaction.getUser();
             PremiumPackage pkg = transaction.getPremiumPackage();
-
-            LocalDateTime currentExpiry = user.getPremiumExpiry();
             LocalDateTime now = LocalDateTime.now();
 
-            if (currentExpiry == null || currentExpiry.isBefore(now)) {
+            if (user.getPremiumExpiry() == null || user.getPremiumExpiry().isBefore(now)) {
                 user.setPremiumExpiry(now.plusDays(pkg.getDurationDays()));
             } else {
-                user.setPremiumExpiry(currentExpiry.plusDays(pkg.getDurationDays()));
+                user.setPremiumExpiry(user.getPremiumExpiry().plusDays(pkg.getDurationDays()));
             }
             user.setPremium(true);
             userRepository.save(user);
+
+            try {
+                String subject = "[AlexStore] Nâng cấp Premium thành công!";
+                String body = String.format(
+                        "Xin chào %s,\n\nBạn đã nâng cấp thành công gói %s qua VNPAY.\nSố tiền: %,.0f VNĐ\nThời hạn: %s",
+                        user.getFullName(), pkg.getName(), transaction.getAmount().doubleValue(),
+                        user.getPremiumExpiry().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")));
+                emailService.sendEmail(user.getEmail(), subject, body);
+            } catch (Exception e) {
+                log.error("Failed to send email: {}", e.getMessage());
+            }
         } else {
             transaction.setStatus(Transaction.TransactionStatus.FAILED);
         }
-
         transactionRepository.save(transaction);
 
-        // Return HTML to redirect user back to frontend
-        String redirectUrl = "http://localhost:5173/profile?status="
+        String redirectUrl = frontendUrl + "/?status="
                 + (transaction.getStatus() == Transaction.TransactionStatus.SUCCESS ? "success" : "failed");
+        return ResponseEntity.status(302).header("Location", redirectUrl).build();
+    }
+
+    @PostMapping("/create-momo-url")
+    public ResponseEntity<?> createMomoUrl(@RequestParam Long packageId) throws Exception {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("User not found"));
+        PremiumPackage pkg = premiumPackageRepository.findById(packageId)
+                .orElseThrow(() -> new RuntimeException("Package not found"));
+
+        String orderId = String.valueOf(System.currentTimeMillis());
+        String requestId = orderId;
+        String amount = String.valueOf(pkg.getPrice().longValue());
+        String orderInfo = "Thanh toan AlexStore gói " + pkg.getName();
+        String requestType = "payWithMethod";
+        String extraData = "";
+
+        String rawHash = "accessKey=" + momoConfig.accessKey +
+                "&amount=" + amount +
+                "&extraData=" + extraData +
+                "&ipnUrl=" + momoConfig.notifyUrl +
+                "&orderId=" + orderId +
+                "&orderInfo=" + orderInfo +
+                "&partnerCode=" + momoConfig.partnerCode +
+                "&redirectUrl=" + momoConfig.returnUrl +
+                "&requestId=" + requestId +
+                "&requestType=" + requestType;
+
+        String signature = MomoConfig.hmacSha256(rawHash, momoConfig.secretKey);
+
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("partnerCode", momoConfig.partnerCode);
+        requestBody.put("requestId", requestId);
+        requestBody.put("amount", Long.parseLong(amount));
+        requestBody.put("orderId", orderId);
+        requestBody.put("orderInfo", orderInfo);
+        requestBody.put("redirectUrl", momoConfig.returnUrl);
+        requestBody.put("ipnUrl", momoConfig.notifyUrl);
+        requestBody.put("extraData", extraData);
+        requestBody.put("requestType", requestType);
+        requestBody.put("signature", signature);
+        requestBody.put("lang", "vi");
+
+        RestTemplate restTemplate = new RestTemplate();
+        ResponseEntity<Map> response = restTemplate.postForEntity(momoConfig.apiUrl, requestBody, Map.class);
+
+        Transaction transaction = Transaction.builder()
+                .transactionId(orderId)
+                .user(user)
+                .premiumPackage(pkg)
+                .amount(pkg.getPrice())
+                .paymentMethod("MOMO")
+                .status(Transaction.TransactionStatus.PENDING)
+                .build();
+        transactionRepository.save(transaction);
+
+        return ResponseEntity.ok(response.getBody());
+    }
+
+    @GetMapping("/momo-callback")
+    @Transactional
+    public ResponseEntity<?> momoCallback(@RequestParam Map<String, String> params) {
+        log.info("MoMo callback received: {}", params);
+        String resultCode = params.get("resultCode");
+        String orderId = params.get("orderId");
+
+        Transaction transaction = transactionRepository.findByTransactionId(orderId)
+                .orElseThrow(() -> new RuntimeException("Transaction not found"));
+
+        if ("0".equals(resultCode)) {
+            transaction.setStatus(Transaction.TransactionStatus.SUCCESS);
+            User user = transaction.getUser();
+            PremiumPackage pkg = transaction.getPremiumPackage();
+            LocalDateTime now = LocalDateTime.now();
+
+            if (user.getPremiumExpiry() == null || user.getPremiumExpiry().isBefore(now)) {
+                user.setPremiumExpiry(now.plusDays(pkg.getDurationDays()));
+            } else {
+                user.setPremiumExpiry(user.getPremiumExpiry().plusDays(pkg.getDurationDays()));
+            }
+            user.setPremium(true);
+            userRepository.save(user);
+
+            try {
+                String subject = "[AlexStore] Nâng cấp Premium thành công!";
+                String body = String.format(
+                        "Xin chào %s,\n\nBạn đã nâng cấp thành công gói %s qua MoMo.\nSố tiền: %,.0f VNĐ\nThời hạn: %s",
+                        user.getFullName(), pkg.getName(), transaction.getAmount().doubleValue(),
+                        user.getPremiumExpiry().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")));
+                emailService.sendEmail(user.getEmail(), subject, body);
+            } catch (Exception e) {
+                log.error("Email error: {}", e.getMessage());
+            }
+        } else {
+            transaction.setStatus(Transaction.TransactionStatus.FAILED);
+        }
+        transactionRepository.save(transaction);
+
+        String redirectUrl = frontendUrl + "/?status=" + ("0".equals(resultCode) ? "success" : "failed");
         return ResponseEntity.status(302).header("Location", redirectUrl).build();
     }
 }

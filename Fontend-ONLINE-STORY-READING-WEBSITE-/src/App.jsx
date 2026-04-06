@@ -27,7 +27,7 @@ import AdminLogs from './pages/AdminLogs';
 import AdminSettings from './pages/AdminSettings';
 import Favorites from './pages/Favorites';
 import ForgotPassword from './pages/ForgotPassword';
-// import Navbar from './components/Navbar'; (Consolidated into SiteHeader)
+import Navbar from './components/Navbar';
 
 import './App.css';
 
@@ -36,9 +36,6 @@ import ProtectedRoute from './components/ProtectedRoute';
 function App() {
   return (
     <Router>
-
-
-
       <div className="flex min-h-screen flex-col">
         <SiteHeader />
         <main className="flex-1">
@@ -99,7 +96,6 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/oauth2/redirect" element={<OAuth2Redirect />} />
-            {/* Add more routes as you build them */}
             <Route path="/genres" element={<div className="container mx-auto px-4 py-20"><h2>Trang Thể Loại đang phát triển...</h2></div>} />
             <Route path="/premium" element={<PremiumPricing />} />
             <Route
@@ -163,9 +159,8 @@ function App() {
         </main>
         <SiteFooter />
 
-
-        {/* Floating Chatbot — hidden when AI is disabled */}
-        {import.meta.env.VITE_ENABLE_AI_CHAT !== 'false' && <ChatBox />}
+        {/* Floating Chatbot */}
+        <ChatBox />
       </div>
     </Router>
 

@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { AdminLayout } from '@/components/admin-layout';
-import { API_URL } from '@/services/api';
-import {
-    Settings2, Save, RefreshCcw, Info,
-    Globe, Mail, Lock, CreditCard, Layout,
+import { 
+    Settings2, Save, RefreshCcw, Info, 
+    Globe, Mail, Lock, CreditCard, Layout, 
     Bell, ShieldCheck, Zap
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -23,7 +22,7 @@ const AdminSettings = () => {
         try {
             setLoading(true);
             const token = localStorage.getItem('token');
-            const response = await axios.get(`${API_URL}/admin/settings`, {
+            const response = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/admin/settings`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setSettings(response.data);
@@ -42,7 +41,7 @@ const AdminSettings = () => {
         try {
             setSaving(true);
             const token = localStorage.getItem('token');
-            await axios.put(`${API_URL}/admin/settings`, settings, {
+            await axios.put(`${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/admin/settings`, settings, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             alert("Cập nhật cài đặt thành công!");
@@ -81,19 +80,19 @@ const AdminSettings = () => {
                         <p className="text-slate-500 font-medium">Tùy chỉnh các thông số vận hành và cấu hình kỹ thuật của website.</p>
                     </div>
                     <div className="flex gap-3">
-                        <Button
-                            variant="outline"
+                        <Button 
+                            variant="outline" 
                             className="rounded-xl border-slate-200 bg-white font-bold"
                             onClick={fetchSettings}
                         >
                             <RefreshCcw className="w-4 h-4 mr-2" /> Hoàn tác
                         </Button>
-                        <Button
+                        <Button 
                             className="rounded-xl bg-orange-600 hover:bg-orange-700 text-white shadow-lg shadow-orange-100 font-bold px-8"
                             onClick={saveSettings}
                             disabled={saving}
                         >
-                            {saving ? <RefreshCcw className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                            {saving ? <RefreshCcw className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />} 
                             Lưu tất cả thay đổi
                         </Button>
                     </div>
@@ -127,19 +126,19 @@ const AdminSettings = () => {
                                         {setting.settingKey === 'MAINTENANCE_MODE' ? (
                                             <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100">
                                                 <Label className="font-bold text-slate-700">Trạng thái bảo trì</Label>
-                                                <Switch
+                                                <Switch 
                                                     checked={setting.settingValue === 'true'}
                                                     onCheckedChange={(checked) => handleUpdateSetting(setting.settingKey, checked.toString())}
                                                 />
                                             </div>
                                         ) : setting.settingValue?.length > 50 ? (
-                                            <Textarea
+                                            <Textarea 
                                                 value={setting.settingValue}
                                                 onChange={(e) => handleUpdateSetting(setting.settingKey, e.target.value)}
                                                 className="min-h-[100px] rounded-2xl border-slate-100 bg-white shadow-inner focus:ring-orange-200"
                                             />
                                         ) : (
-                                            <Input
+                                            <Input 
                                                 value={setting.settingValue}
                                                 onChange={(e) => handleUpdateSetting(setting.settingKey, e.target.value)}
                                                 className="h-12 rounded-2xl border-slate-100 bg-white shadow-inner focus:ring-orange-200 font-medium"

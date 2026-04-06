@@ -13,24 +13,15 @@ import java.util.Date;
 @Component
 public class JwtTokenProvider {
 
-    @Value("${APP_JWT_SECRET:9a67475d868a287f3980753f7c4e5e7834241e8c7c94541e2d451a668478465d}")
+    @Value("${app.jwt.secret}")
     private String jwtSecret;
 
-    @Value("${APP_JWT_EXPIRATION_MS:86400000}")
-    private String jwtExpirationInMsStr;
+    @Value("${app.jwt.expirationMs}")
+    private int jwtExpirationInMs;
 
     private SecretKey getSigningKey() {
-        String secret = jwtSecret != null ? jwtSecret.trim().replace("\"", "").replace("'", "") : "9a67475d868a287f3980753f7c4e5e7834241e8c7c94541e2d451a668478465d";
-        byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
+        byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
         return Keys.hmacShaKeyFor(keyBytes);
-    }
-
-    private int getJwtExpirationInMs() {
-        try {
-            return Integer.parseInt(jwtExpirationInMsStr.trim().replace("\"", "").replace("'", ""));
-        } catch (Exception e) {
-            return 86400000; // Default 1 day
-        }
     }
 
     public String generateToken(Authentication authentication) {
@@ -40,7 +31,7 @@ public class JwtTokenProvider {
 
     public String generateTokenFromUsername(String username) {
         Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + getJwtExpirationInMs());
+        Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
 
         return Jwts.builder()
                 .subject(username)

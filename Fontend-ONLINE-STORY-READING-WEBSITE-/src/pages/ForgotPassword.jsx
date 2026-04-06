@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { API_URL } from '../services/api';
 import './Login.jsx'; // Reuse existing styles or create new ones
 
 const ForgotPassword = () => {
@@ -20,7 +19,7 @@ const ForgotPassword = () => {
         setError('');
         setMessage('');
         try {
-            const response = await axios.post(`${API_URL}/auth/forgot-password`, { email });
+            const response = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/auth/forgot-password`, { email });
             setMessage(response.data);
             setStep(2);
         } catch (err) {
@@ -36,7 +35,7 @@ const ForgotPassword = () => {
         setError('');
         setMessage('');
         try {
-            const response = await axios.post(`${API_URL}/auth/reset-password`, {
+            const response = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/auth/reset-password`, {
                 email,
                 otp,
                 newPassword
@@ -54,7 +53,7 @@ const ForgotPassword = () => {
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#f4f7f6' }}>
             <div style={{ width: '400px', padding: '40px', backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
                 <h2 style={{ textAlign: 'center', marginBottom: '30px', color: '#333' }}>Quên mật khẩu</h2>
-
+                
                 {error && <div style={{ color: 'red', marginBottom: '15px', textAlign: 'center' }}>{error}</div>}
                 {message && <div style={{ color: 'green', marginBottom: '15px', textAlign: 'center' }}>{message}</div>}
 
@@ -110,7 +109,7 @@ const ForgotPassword = () => {
                         </button>
                     </form>
                 )}
-
+                
                 <div style={{ marginTop: '20px', textAlign: 'center' }}>
                     <a href="/login" style={{ color: '#888', textDecoration: 'none', fontSize: '14px' }}>Quay lại đăng nhập</a>
                 </div>

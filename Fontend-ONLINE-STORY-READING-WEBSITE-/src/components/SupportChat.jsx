@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, Bot, User, Loader2, ArrowLeft, Headphones, ShieldCheck } from 'lucide-react';
-import { supportService, WS_URL } from '../services/api';
+import { supportService, getWsUrl } from '../services/api';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { useNavigate } from 'react-router-dom';
@@ -54,25 +54,31 @@ export default function SupportChat() {
 
             const messageResponse = await supportService.getMessages(conversation.id);
             if (messageResponse.data && messageResponse.data.length > 0) {
-                const mapped = messageResponse.data.map((msg) => ({
-                    role: msg.senderType === 'USER' ? 'user' : 'bot',
-                    content: msg.content,
-                }));
+                const mapped = messageResponse.data.map((msg) => {
+                    let r = 'user';
+                    if (msg.senderType === 'ADMIN') r = 'admin';
+                    else if (msg.senderType === 'BOT') r = 'bot';
+                    return { role: r, content: msg.content };
+                });
                 setMessages([WELCOME_MSG, ...mapped]);
             }
 
             if (stompClientRef.current) stompClientRef.current.deactivate();
 
             const client = new Client({
-                webSocketFactory: () => new SockJS(WS_URL),
+                webSocketFactory: () => new SockJS(getWsUrl()),
                 reconnectDelay: 5000,
                 onConnect: () => {
                     setStatus('connected');
                     client.subscribe(`/topic/support/${conversation.id}`, (frame) => {
                         const msg = JSON.parse(frame.body);
+                        let assignedRole = 'user';
+                        if (msg.senderType === 'ADMIN') assignedRole = 'admin';
+                        else if (msg.senderType === 'BOT') assignedRole = 'bot';
+
                         setMessages((prev) => [
                             ...prev,
-                            { role: msg.senderType === 'USER' ? 'user' : 'bot', content: msg.content },
+                            { role: assignedRole, content: msg.content },
                         ]);
                     });
                 },
@@ -160,7 +166,9 @@ export default function SupportChat() {
                 <div className="support-chat__messages">
                     {messages.map((msg, i) => (
                         <div key={i} className={`support-chat__msg support-chat__msg--${msg.role}`}>
-                            <div className="support-chat__msg-avatar">{msg.role === 'bot' ? <Bot size={14} /> : <User size={14} />}</div>
+                            <div className="support-chat__msg-avatar">
+                                {msg.role === 'admin' ? <ShieldCheck size={14} /> : msg.role === 'bot' ? <Bot size={14} /> : <User size={14} />}
+                            </div>
                             <div className="support-chat__msg-bubble" dangerouslySetInnerHTML={{ __html: formatMsg(msg.content) }} />
                         </div>
                     ))}

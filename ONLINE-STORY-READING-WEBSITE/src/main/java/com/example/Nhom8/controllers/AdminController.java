@@ -169,7 +169,8 @@ public class AdminController {
         user.setEnabled(!user.isEnabled());
         user.setActive(user.isEnabled()); // Sync both fields if necessary, but isEnabled is used for security
         userRepository.save(user);
-        systemLogService.log("TOGGLE_USER_STATUS", "Đã " + (user.isEnabled() ? "Kích hoạt" : "Vô hiệu hóa") + " người dùng: " + user.getUsername());
+        systemLogService.log("TOGGLE_USER_STATUS",
+                "Đã " + (user.isEnabled() ? "Kích hoạt" : "Vô hiệu hóa") + " người dùng: " + user.getUsername());
         return ResponseEntity.ok(user);
     }
 
@@ -186,9 +187,10 @@ public class AdminController {
         Set<Role> roles = roleRepository.findAllById(roleIds).stream().collect(Collectors.toSet());
         user.setRoles(roles);
         userRepository.save(user);
-        
+
         String roleNames = roles.stream().map(Role::getName).collect(Collectors.joining(", "));
-        systemLogService.log("UPDATE_USER_ROLES", "Đã cập nhật quyền cho " + user.getUsername() + " thành: " + roleNames);
+        systemLogService.log("UPDATE_USER_ROLES",
+                "Đã cập nhật quyền cho " + user.getUsername() + " thành: " + roleNames);
 
         return ResponseEntity.ok("Roles updated successfully");
     }
