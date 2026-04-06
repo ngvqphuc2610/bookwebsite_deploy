@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import './Login.jsx'; // Reuse existing styles or create new ones
 
@@ -19,7 +19,7 @@ const ForgotPassword = () => {
         setError('');
         setMessage('');
         try {
-            const response = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/auth/forgot-password`, { email });
+            const response = await api.post('/auth/forgot-password', { email });
             setMessage(response.data);
             setStep(2);
         } catch (err) {
@@ -35,7 +35,7 @@ const ForgotPassword = () => {
         setError('');
         setMessage('');
         try {
-            const response = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/auth/reset-password`, {
+            const response = await api.post('/auth/reset-password', {
                 email,
                 otp,
                 newPassword
