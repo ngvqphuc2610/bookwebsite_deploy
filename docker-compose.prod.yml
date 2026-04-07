@@ -7,7 +7,7 @@ services:
       - --collation-server=utf8mb4_unicode_ci
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-nhom8_db2}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
@@ -15,10 +15,36 @@ services:
     ports:
       - "127.0.0.1:3307:3306"
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      test: [ "CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent" ]
       interval: 10s
       timeout: 5s
       retries: 10
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    restart: unless-stopped
+    volumes:
+      - qdrant_storage:/qdrant/storage
+    ports:
+      - "127.0.0.1:6333:6333"
+      - "127.0.0.1:6334:6334"
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -sf http://localhost:6333/healthz || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "127.0.0.1:11434:11434"
+    deploy:
+      resources:
+        limits:
+          memory: 4G
 
   backend:
     build:
@@ -26,8 +52,8 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     environment:
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:mysql://mysql:3306/nhom8_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true}
-      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-nhom8_user}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:mysql://mysql:3306/nhom8_db2?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-root}
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-change_app_password}
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SPRING_JPA_SHOW_SQL: "false"
@@ -35,9 +61,16 @@ services:
       APP_JWT_SECRET: ${APP_JWT_SECRET:-replace_with_a_long_random_secret}
       APP_JWT_EXPIRATION_MS: ${APP_JWT_EXPIRATION_MS:-86400000}
       APP_CORS_ALLOWED_ORIGINS: ${APP_CORS_ALLOWED_ORIGINS:-https://alexdev.software,https://www.alexdev.software}
-      # Feature flags — disable AI on production to save resources
-      APP_FEATURES_VECTOR_SEARCH_ENABLED: ${APP_FEATURES_VECTOR_SEARCH_ENABLED:-false}
-      APP_FEATURES_AI_CHAT_ENABLED: ${APP_FEATURES_AI_CHAT_ENABLED:-false}
+      # ── AI / Vector features ──
+      APP_FEATURES_VECTOR_SEARCH_ENABLED: ${APP_FEATURES_VECTOR_SEARCH_ENABLED:-true}
+      APP_FEATURES_AI_CHAT_ENABLED: ${APP_FEATURES_AI_CHAT_ENABLED:-true}
+      QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
+      QDRANT_COLLECTION: ${QDRANT_COLLECTION:-manga}
+      QDRANT_EMBED_DIM: ${QDRANT_EMBED_DIM:-768}
+      OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
+      OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-qwen2.5:3b}
+      OLLAMA_EMBED_MODEL: ${OLLAMA_EMBED_MODEL:-nomic-embed-text}
+      # ── Payment ──
       VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-}
       VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-}
       VNPAY_BASE_URL: ${VNPAY_BASE_URL:-https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
@@ -46,6 +79,7 @@ services:
       VNPAY_CURR_CODE: ${VNPAY_CURR_CODE:-VND}
       VNPAY_LOCALE: ${VNPAY_LOCALE:-vn}
       VNPAY_RETURN_URL: ${VNPAY_RETURN_URL:-https://alexdev.software/api/payment/vnpay-callback}
+      # ── Email ──
       SPRING_MAIL_HOST: ${SPRING_MAIL_HOST:-smtp.gmail.com}
       SPRING_MAIL_PORT: ${SPRING_MAIL_PORT:-587}
       SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME:-}
@@ -53,14 +87,18 @@ services:
       SPRING_MAIL_SMTP_AUTH: ${SPRING_MAIL_SMTP_AUTH:-true}
       SPRING_MAIL_SMTP_STARTTLS_ENABLE: ${SPRING_MAIL_SMTP_STARTTLS_ENABLE:-true}
       SPRING_MAIL_SMTP_STARTTLS_REQUIRED: ${SPRING_MAIL_SMTP_STARTTLS_REQUIRED:-true}
+      # ── OAuth2 ──
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      # ── Admin ──
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@alexdev.software}
       JAVA_OPTS: ${JAVA_OPTS:--Xms512m -Xmx2048m}
     depends_on:
       mysql:
+        condition: service_healthy
+      qdrant:
         condition: service_healthy
     expose:
       - "8080"
@@ -74,8 +112,8 @@ services:
       args:
         VITE_API_URL: ${VITE_API_URL:-/api}
         VITE_WS_URL: ${VITE_WS_URL:-/ws}
-        VITE_ENABLE_AI_CHAT: ${VITE_ENABLE_AI_CHAT:-false}
-        VITE_ENABLE_VECTOR_SEARCH: ${VITE_ENABLE_VECTOR_SEARCH:-false}
+        VITE_ENABLE_AI_CHAT: ${VITE_ENABLE_AI_CHAT:-true}
+        VITE_ENABLE_VECTOR_SEARCH: ${VITE_ENABLE_VECTOR_SEARCH:-true}
     restart: unless-stopped
     depends_on:
       - backend
@@ -85,3 +123,5 @@ services:
 volumes:
   mysql_data:
   backend_uploads:
+  qdrant_storage:
+  ollama_data:

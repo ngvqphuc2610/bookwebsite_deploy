@@ -4,9 +4,9 @@ services:
     container_name: story_db
     environment:
       MYSQL_ROOT_PASSWORD: root_password_here
-      MYSQL_DATABASE: nhom8_db
+      MYSQL_DATABASE: nhom8_db2
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     restart: unless-stopped
@@ -18,7 +18,7 @@ services:
       - mysql
     environment:
       # Use internal MySQL host
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/nhom8_db?useSSL=false&serverTimezone=UTC
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/nhom8_db2?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: root_password_here
       # Path to local Ollama and Qdrant (you will need a public URL or Tunnel for these)

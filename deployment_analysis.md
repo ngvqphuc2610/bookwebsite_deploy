@@ -25,7 +25,7 @@ Plan **bổ sung** để giảm tải VPS production:
 |---|---|
 | Dockerfile Backend (Spring Boot) | ✅ Đã tạo |
 | Dockerfile Frontend (Vite + Nginx) | ✅ Đã tạo |
-| [docker-compose.prod.yml](file:///d:/2A2026/bookwebsite/docker-compose.prod.yml) | ✅ Đã tạo & Loại bỏ Qdrant/Ollama |
+| [docker-compose.prod.yml](file:///d:/2A2026/bookwebsite/docker-compose.prod.yml) | ✅ Đã cấu hình đẩy đủ (MySQL, API, Frontend, Ollama, Qdrant) |
 | [.env.example](file:///d:/2A2026/bookwebsite/.env.example) | ✅ Đã tạo chuẩn cho prod |
 | Frontend: bỏ hardcode localhost | ✅ Đã sửa |
 | Backend: externalize config sang env vars | ✅ Đã sửa |
@@ -35,7 +35,7 @@ Plan **bổ sung** để giảm tải VPS production:
 | Feature flags backend (tắt AI/Vector) | ✅ Đã implement |
 | Fallback `HybridSearchService` | ✅ Đã xử lý (về MySQL) |
 | Fallback `ChatbotService` | ✅ Đã xử lý |
-| Frontend ẩn `ChatBox` khi AI tắt | ✅ Đã sửa |
+| Frontend có cấu hình Nginx reverse proxy /api, /ws | ✅ Đã cấu hình |
 | GitHub Actions deploy workflow (`deploy-prod.yml`)| ✅ Đã cấu hình |
 | Cấu hình Nginx reverse proxy + server_name | ✅ Đã cấu hình (cho `alexdev.software`) |
 
@@ -43,10 +43,10 @@ Plan **bổ sung** để giảm tải VPS production:
 
 | Hạng mục | Mức ưu tiên |
 |---|---|
-| **Cấu hình Google Cloud VPS (reserve IP, firewall)** | 🔴 Chưa làm |
-| **Cấu hình domain Cloudflare (DNS, bật SSL Full)** | 🔴 Chưa làm |
-| **Thiết lập GitHub Secrets cho Actions** | 🔴 Chưa làm |
-| **Deploy lần đầu lên VPS** | 🔴 Chưa làm |
+| **Cấu hình Google Cloud VPS (reserve IP, firewall)** | Đã làm |
+| **Cấu hình domain Cloudflare (DNS, bật SSL Full)** | Đã làm |
+| **Thiết lập GitHub Secrets cho Actions** | Đã làm |
+| **Deploy lần đầu lên VPS** | Đã làm |
 | **Backup/Monitoring setup** | 🟡 Trung bình |
 
 ---
@@ -64,7 +64,7 @@ graph TB
         subgraph "Docker Compose"
             FE[Frontend<br/>Nginx:80]
             BE[Backend<br/>Spring Boot:8080]
-            DB[(MySQL:3306)]
+            DB[(MySQL:3307)]
         end
         PROXY[Nginx Reverse Proxy<br/>:80 / :443]
     end
@@ -139,7 +139,7 @@ Hiện tại vẫn có Qdrant + Ollama + `depends_on` tương ứng. Cần:
 2. ~~**Sửa `HybridSearchService`** — fallback MySQL FULLTEXT~~
 3. ~~**Sửa `ChatbotService`** — trả message fallback~~
 4. ~~**Frontend ẩn ChatBox** khi `VITE_ENABLE_AI_CHAT=false`~~
-5. ~~**Chỉnh docker-compose.prod.yml** — bỏ Qdrant/Ollama~~
+5. ~~**Chỉnh docker-compose.prod.yml** — hoàn chỉnh toàn bộ container kể cả Ollama/Qdrant và sửa port MySQL~~
 6. ~~**Tạo file Nginx reverse proxy** thật với domain `alexdev.software`~~
 7. ~~**Tách cấu hình môi trường chuẩn** qua `.env.example`~~
 8. ~~**Verify local** — build FE, package BE, docker compose config~~
