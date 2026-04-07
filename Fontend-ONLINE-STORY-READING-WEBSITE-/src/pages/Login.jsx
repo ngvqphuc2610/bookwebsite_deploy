@@ -266,7 +266,7 @@ const Login = () => {
                         <Button
                             variant="outline"
                             className="flex-1 h-10 border-border/50 hover:bg-muted/50 w-full"
-                            onClick={() => window.location.href = 'http://localhost:8080/oauth2/authorization/google'}
+                            onClick={() => window.location.href = (import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:8080') + '/oauth2/authorization/google'}
                         >
                             Google
                         </Button>

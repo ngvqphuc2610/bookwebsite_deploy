@@ -22,6 +22,9 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
+    @org.springframework.beans.factory.annotation.Value("${app.frontend-url:http://localhost:5173}")
+    private String frontendUrlStr;
+
     private final JwtTokenProvider tokenProvider;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -33,7 +36,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         String email = oAuth2User.getAttribute("email");
 
         if (email == null) {
-            response.sendRedirect("http://localhost:5173/login?error=email_not_found");
+            response.sendRedirect(frontendUrlStr + "/login?error=email_not_found");
             return;
         }
 
@@ -73,7 +76,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         String token = tokenProvider.generateTokenFromUsername(user.getUsername());
 
         // Redirect to Frontend with Token
-        String frontendUrl = "http://localhost:5173/oauth2/redirect?token=" + token;
-        response.sendRedirect(frontendUrl);
+        String redirectUrl = frontendUrlStr + "/oauth2/redirect?token=" + token;
+        response.sendRedirect(redirectUrl);
     }
 }

@@ -157,7 +157,7 @@ const AdminUserManagement = () => {
     const getAvatarUrl = (url) => {
         if (!url) return null;
         if (url.startsWith('http')) return url;
-        return `http://localhost:8080${url}`;
+        return (import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:8080') + url;
     };
 
     const getRoleBadgeStyle = (roleName) => {
