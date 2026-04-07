@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, Bot, User, Loader2, ArrowLeft, Headphones, ShieldCheck } from 'lucide-react';
-import { supportService, getWsUrl } from '../services/api';
+import { supportService } from '../services/api';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { useNavigate } from 'react-router-dom';
@@ -66,7 +66,7 @@ export default function SupportChat() {
             if (stompClientRef.current) stompClientRef.current.deactivate();
 
             const client = new Client({
-                webSocketFactory: () => new SockJS(getWsUrl()),
+                webSocketFactory: () => new SockJS('http://localhost:8080/ws'),
                 reconnectDelay: 5000,
                 onConnect: () => {
                     setStatus('connected');

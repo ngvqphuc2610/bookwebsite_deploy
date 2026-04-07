@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, Search, User, Menu, LogOut, Headphones } from 'lucide-react';
-import { getServerUrl } from '../services/api';
 import './Navbar.css';
 
 const Navbar = () => {
@@ -21,7 +20,9 @@ const Navbar = () => {
     };
 
     const getAvatarUrl = (url) => {
-        return getServerUrl(url);
+        if (!url) return 'https://via.placeholder.com/40';
+        if (url.startsWith('http')) return url;
+        return `http://localhost:8080${url}`;
     };
 
     return (

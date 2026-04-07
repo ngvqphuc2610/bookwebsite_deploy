@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { userService, getServerUrl } from '../services/api';
+import { userService } from '../services/api';
 import {
     Trash2,
     Search,
@@ -155,7 +155,9 @@ const AdminUserManagement = () => {
     };
 
     const getAvatarUrl = (url) => {
-        return getServerUrl(url);
+        if (!url) return null;
+        if (url.startsWith('http')) return url;
+        return `http://localhost:8080${url}`;
     };
 
     const getRoleBadgeStyle = (roleName) => {

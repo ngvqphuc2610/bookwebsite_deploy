@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { authService, getServerUrl } from '../services/api';
+import { authService } from '../services/api';
 import { User, Lock, Mail, Type, Image as ImageIcon, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -266,7 +266,7 @@ const Login = () => {
                         <Button
                             variant="outline"
                             className="flex-1 h-10 border-border/50 hover:bg-muted/50 w-full"
-                            onClick={() => window.location.href = getServerUrl('/oauth2/authorization/google')}
+                            onClick={() => window.location.href = 'http://localhost:8080/oauth2/authorization/google'}
                         >
                             Google
                         </Button>

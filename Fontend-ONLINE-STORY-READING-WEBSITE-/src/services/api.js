@@ -1,10 +1,6 @@
 import axios from 'axios';
 
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
-export const getWsUrl = () => {
-    return import.meta.env.VITE_WS_URL || 'http://localhost:8080/ws';
-};
-
 export const getServerUrl = (path) => {
     if (!path) return 'https://github.com/shadcn.png';
     if (path.startsWith('http')) return path;
